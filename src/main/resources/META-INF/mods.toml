@@ -1,0 +1,20 @@
+modLoader="javafml"
+loaderVersion="[31,)"
+
+issueTrackerURL="https://github.com/Thutmose/Thut/issues"
+
+[[mods]]
+    modId="thuttech"
+    version="${file.jarVersion}"
+    displayName="Thut Elevators"
+    authors="Thutmose"
+    description='''
+    Dynamical Moving elevators for Minecraft!
+    '''
+    
+[[dependencies.thuttech]]
+    modId="thutcore"
+    mandatory=true
+    versionRange="version_thutcore"
+    ordering="AFTER"
+    side="BOTH"
