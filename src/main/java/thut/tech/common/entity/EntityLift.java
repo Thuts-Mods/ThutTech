@@ -17,7 +17,7 @@ import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.MinecraftForge;
@@ -41,20 +41,34 @@ public class EntityLift extends BlockEntityBase
 
     public static final EntityType<EntityLift> TYPE = new BlockEntityType<>(EntityLift::new);
 
-    static final DataParameter<Integer> DESTINATIONFLOORDW = EntityDataManager.<Integer> createKey(EntityLift.class,
-            DataSerializers.VARINT);
-    static final DataParameter<Float>   DESTINATIONYDW     = EntityDataManager.<Float> createKey(EntityLift.class,
-            DataSerializers.FLOAT);
-    static final DataParameter<Float>   DESTINATIONXDW     = EntityDataManager.<Float> createKey(EntityLift.class,
-            DataSerializers.FLOAT);
-    static final DataParameter<Float>   DESTINATIONZDW     = EntityDataManager.<Float> createKey(EntityLift.class,
-            DataSerializers.FLOAT);
-    static final DataParameter<Integer> CURRENTFLOORDW     = EntityDataManager.<Integer> createKey(EntityLift.class,
-            DataSerializers.VARINT);
+    static final DataParameter<Integer> DESTINATIONFLOORDW;
+    static final DataParameter<Float>   DESTINATIONYDW;
+    static final DataParameter<Float>   DESTINATIONXDW;
+    static final DataParameter<Float>   DESTINATIONZDW;
+    static final DataParameter<Integer> CURRENTFLOORDW;
+    static final DataParameter<Boolean> CALLEDDW;
 
-    static final DataParameter<Boolean> CALLEDDW  = EntityDataManager.<Boolean> createKey(EntityLift.class,
-            DataSerializers.BOOLEAN);
-    public static boolean               ENERGYUSE = false;
+    static final DataParameter<Float> SPEEDUP;
+    static final DataParameter<Float> SPEEDDOWN;
+    static final DataParameter<Float> SPEEDSIDE;
+    static final DataParameter<Float> ACCEL;
+
+    static
+    {
+        DESTINATIONFLOORDW = EntityDataManager.<Integer> createKey(EntityLift.class, DataSerializers.VARINT);
+        DESTINATIONYDW = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
+        DESTINATIONXDW = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
+        DESTINATIONZDW = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
+        CURRENTFLOORDW = EntityDataManager.<Integer> createKey(EntityLift.class, DataSerializers.VARINT);
+        CALLEDDW = EntityDataManager.<Boolean> createKey(EntityLift.class, DataSerializers.BOOLEAN);
+
+        SPEEDUP = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
+        SPEEDDOWN = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
+        SPEEDSIDE = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
+        ACCEL = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
+    }
+
+    public static boolean ENERGYUSE = false;
 
     public static int ENERGYCOST = 100;
 
@@ -78,6 +92,8 @@ public class EntityLift extends BlockEntityBase
 
     private final Vector3f velocity = new Vector3f();
 
+    private Vec3d motion = new Vec3d(0, 0, 0);
+
     EntitySize size;
 
     public EntityLift(final EntityType<EntityLift> type, final World par1World)
@@ -85,8 +101,6 @@ public class EntityLift extends BlockEntityBase
         super(type, par1World);
         this.ignoreFrustumCheck = true;
         this.hurtResistantTime = 0;
-        this.speedUp = TechCore.config.LiftSpeedUp;
-        this.speedDown = -TechCore.config.LiftSpeedDown;
     }
 
     @Override
@@ -96,7 +110,12 @@ public class EntityLift extends BlockEntityBase
         // someone else has tried to rotate it.
         this.rotationYaw = 0;
         // Only should run the consume power check on servers.
-        if (this.isServerWorld() && !this.consumePower()) this.toMoveY = this.toMoveX = this.toMoveZ = false;
+        if (this.isServerWorld() && !this.consumePower())
+        {
+            this.toMoveY = this.toMoveX = this.toMoveZ = false;
+            this.setDestX((float) this.posX);
+            this.setCalled(false);
+        }
         else
         {
             // Otherwise set it to move if it has a destination.
@@ -113,6 +132,10 @@ public class EntityLift extends BlockEntityBase
 
         if (this.getCalled())
         {
+            final double speedDown = this.getSpeedDown();
+            final double speedHoriz = this.getSpeedHoriz();
+            final double speedUp = this.getSpeedUp();
+
             if (this.toMoveY)
             {
                 final float destY = this.getDestY();
@@ -127,7 +150,7 @@ public class EntityLift extends BlockEntityBase
                 else
                 {
                     // Otherwise accelerate accordingly.
-                    final double dy = this.getSpeed(this.posY, destY, this.velocity.y, this.speedUp, this.speedDown);
+                    final double dy = this.getSpeed(this.posY, destY, this.velocity.y, speedUp, speedDown);
                     this.velocity.y = (float) dy;
                 }
             }
@@ -142,8 +165,7 @@ public class EntityLift extends BlockEntityBase
                 }
                 else
                 {
-                    final double dx = this.getSpeed(this.posX, destX, this.velocity.x, this.speedHoriz,
-                            this.speedHoriz);
+                    final double dx = this.getSpeed(this.posX, destX, this.velocity.x, speedHoriz, speedHoriz);
                     this.velocity.x = (float) dx;
                 }
             }
@@ -158,13 +180,34 @@ public class EntityLift extends BlockEntityBase
                 }
                 else
                 {
-                    final double dz = this.getSpeed(this.posZ, destZ, this.velocity.z, this.speedHoriz,
-                            this.speedHoriz);
+                    final double dz = this.getSpeed(this.posZ, destZ, this.velocity.z, speedHoriz, speedHoriz);
                     this.velocity.z = (float) dz;
                 }
             }
         }
         this.setMotion(this.velocity.x, this.velocity.y, this.velocity.z);
+    }
+
+    @Override
+    public void setRawPosition(final double x, final double y, final double z)
+    {
+        this.posX = x;
+        this.posY = y;
+        this.posZ = z;
+        if (this.isAddedToWorld() && !this.world.isRemote && this.isAlive()) this.world.getChunk((int) Math.floor(
+                this.posX) >> 4, (int) Math.floor(this.posZ) >> 4);
+    }
+
+    @Override
+    public Vec3d getMotion()
+    {
+        return this.motion;
+    }
+
+    @Override
+    public void setMotion(final Vec3d vec)
+    {
+        this.motion = vec;
     }
 
     public void call(final int floor)
@@ -234,12 +277,7 @@ public class EntityLift extends BlockEntityBase
         if (!this.toMoveY) this.velocity.y = 0;
         if (!this.toMoveZ) this.velocity.z = 0;
         this.setMotion(this.velocity.x, this.velocity.y, this.velocity.z);
-        if (this.getCalled()) this.move(MoverType.SELF, this.getMotion());
-        else
-        {
-            final BlockPos pos = this.getPosition();
-            this.setPosition(pos.getX() + 0.5, Math.round(this.posY), pos.getZ() + 0.5);
-        }
+        this.move(MoverType.SELF, this.getMotion());
     }
 
     public boolean getCalled()
@@ -278,6 +316,30 @@ public class EntityLift extends BlockEntityBase
     }
 
     @Override
+    public float getSpeedUp()
+    {
+        return this.dataManager.get(EntityLift.SPEEDUP);
+    }
+
+    @Override
+    public float getSpeedDown()
+    {
+        return this.dataManager.get(EntityLift.SPEEDDOWN);
+    }
+
+    @Override
+    public float getSpeedHoriz()
+    {
+        return this.dataManager.get(EntityLift.SPEEDSIDE);
+    }
+
+    @Override
+    public float getAccel()
+    {
+        return this.dataManager.get(EntityLift.ACCEL);
+    }
+
+    @Override
     public EntitySize getSize(final Pose pose)
     {
         if (this.size == null) this.size = EntitySize.fixed(1 + this.getMax().getX() - this.getMin().getX(), this
@@ -293,12 +355,16 @@ public class EntityLift extends BlockEntityBase
     }
 
     @Override
+    public void onRemovedFromWorld()
+    {
+        super.onRemovedFromWorld();
+        LiftTracker.liftMap.remove(this.getUniqueID(), this);
+    }
+
+    @Override
     protected void onGridAlign()
     {
         this.setCalled(false);
-        final BlockPos pos = this.getPosition();
-        this.setPosition(pos.getX() + 0.5, Math.round(this.posY), pos.getZ() + 0.5);
-        EntityUpdate.sendEntityUpdate(this);
     }
 
     @Override
@@ -332,13 +398,11 @@ public class EntityLift extends BlockEntityBase
         this.dataManager.register(EntityLift.DESTINATIONZDW, Float.valueOf(0));
         this.dataManager.register(EntityLift.CURRENTFLOORDW, Integer.valueOf(-1));
         this.dataManager.register(EntityLift.CALLEDDW, Boolean.FALSE);
-    }
 
-    @Override
-    public void remove()
-    {
-        super.remove();
-        LiftTracker.liftMap.remove(this.getUniqueID());
+        this.dataManager.register(EntityLift.SPEEDUP, Float.valueOf((float) TechCore.config.LiftSpeedUp));
+        this.dataManager.register(EntityLift.SPEEDDOWN, Float.valueOf((float) TechCore.config.LiftSpeedDown));
+        this.dataManager.register(EntityLift.SPEEDSIDE, Float.valueOf((float) TechCore.config.LiftSpeedSideways));
+        this.dataManager.register(EntityLift.ACCEL, Float.valueOf((float) TechCore.config.LiftAcceleration));
     }
 
     private void setCalled(final boolean called)

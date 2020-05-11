@@ -4,5 +4,5 @@ package thut.tech;
 public class Reference
 {
     public static final String MOD_ID     = "thuttech";
-    public static final String NETVERSION = "1.0.0";
+    public static final String NETVERSION = "1.0.1";
 }
