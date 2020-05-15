@@ -139,7 +139,13 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
             this.drawNumber(mat, buffer, floor + page * 16, floor);
     }
 
-    private void drawNumber(final MatrixStack mat, final IRenderTypeBuffer buffer, int number, int floor)
+    private void drawNumber(final MatrixStack mat, final IRenderTypeBuffer buffer, final int number, final int floor)
+    {
+        this.drawNumber(mat, buffer, number, floor, false);
+    }
+
+    private void drawNumber(final MatrixStack mat, final IRenderTypeBuffer buffer, int number, int floor,
+            final boolean wide)
     {
         mat.push();
         floor--;
@@ -147,7 +153,11 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
         final boolean minus = number >= 64;
         if (minus) number -= 64;
 
-        final double x = (double) (3 - floor & 3) / (double) 4, y = ((double) 3 - (floor >> 2)) / 4;
+        double x = (double) (3 - floor & 3) / (double) 4;
+        final double y = ((double) 3 - (floor >> 2)) / 4;
+
+        if (wide) x += -0.25;
+
         final int actFloor = number;
         float[] uvs = this.locationFromNumber(actFloor % 10);
         final float[] uvs1 = this.locationFromNumber(actFloor / 10);
@@ -301,7 +311,7 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
 
                 mat.push();
                 mat.translate(0.4, 0.0, 0);
-                this.drawNumber(mat, buff, currentFloor - 1, 1);
+                this.drawNumber(mat, buff, currentFloor, 1, true);
                 mat.pop();
             }
             else if (monitor.isCallPanel(dir))
@@ -326,7 +336,7 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
 
                 mat.push();
                 mat.translate(0.4, 0.0, 0);
-                this.drawNumber(mat, buff, monitor.floor - 1, 1);
+                this.drawNumber(mat, buff, monitor.floor, 1, true);
                 mat.pop();
             }
             else
@@ -356,12 +366,12 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
                     if (hasFloor)
                     {
                         this.drawNumber(mat, buff, realFloor, floor);
-                        this.drawOverLay(mat, buff, monitor, floor, mapped, dir, false, 0);
+                        this.drawOverLay(mat, buff, monitor, realFloor, mapped, dir, false, 0);
                     }
                     else if (hasLinker)
                     {
                         this.drawNumber(mat, buff, realFloor, floor);
-                        this.drawOverLay(mat, buff, monitor, floor, unmapped, dir, false, 0);
+                        this.drawOverLay(mat, buff, monitor, realFloor, unmapped, dir, false, 0);
                     }
                 }
 

@@ -110,7 +110,6 @@ public class ControllerTile extends TileEntity implements ITickableTileEntity// 
         final int button = this.getButtonFromClick(side, hitX, hitY, hitZ);
         final boolean valid = this.getLift() != null && this.getLift().hasFloor(button);
         if (!this.isSideOn(side)) return false;
-        if (this.isFloorDisplay(side)) return false;
         if (this.isEditMode(side))
         {
             if (!this.getWorld().isRemote)
@@ -142,10 +141,10 @@ public class ControllerTile extends TileEntity implements ITickableTileEntity// 
             }
             return true;
         }
+        else if (this.isFloorDisplay(side)) return false;
         else if (this.getWorld().isRemote)
         {
             final boolean callPanel = this.isCallPanel(side);
-            System.out.println(this.getLift());
             PacketLift.sendButtonPress(this.getLift(), this.getPos(), button, callPanel);
         }
         if (clicker instanceof ServerPlayerEntity) this.sendUpdate((ServerPlayerEntity) clicker);
