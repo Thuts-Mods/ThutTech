@@ -111,7 +111,7 @@ public class ClientProxy extends CommonProxy
                 final IRenderTypeBuffer.Impl buffer = Minecraft.getInstance().getRenderTypeBuffers().getBufferSource();
                 final IVertexBuilder builder = buffer.getBuffer(RenderType.LINES);
                 for (final Pair<Vector3f, Vector3f> line : lines)
-                    thut.core.client.ClientProxy.line(builder, positionMatrix, line.getLeft(), line.getRight(), 1, 0, 0,
+                    thut.core.proxy.ClientProxy.line(builder, positionMatrix, line.getLeft(), line.getRight(), 1, 0, 0,
                             1f);
                 mat.pop();
             }
