@@ -1,16 +1,14 @@
 package thut.tech.compat.cct;
 
 import dan200.computercraft.api.ComputerCraftAPI;
-import dan200.computercraft.api.lua.ArgumentHelper;
-import dan200.computercraft.api.lua.ILuaContext;
 import dan200.computercraft.api.lua.LuaException;
-import dan200.computercraft.api.peripheral.IComputerAccess;
 import dan200.computercraft.api.peripheral.IPeripheral;
 import dan200.computercraft.api.peripheral.IPeripheralProvider;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.LazyOptional;
 import thut.core.common.ThutCore;
 import thut.tech.common.blocks.lift.ControllerTile;
 
@@ -30,13 +28,57 @@ public class Peripherals
 
     public static class ElevatorPeripheral implements IPeripheral
     {
+        public static class Provider
+        {
+            private final ControllerTile tile;
+
+            public Provider(final ControllerTile tile)
+            {
+                this.tile = tile;
+            }
+
+            public boolean moveBy(final String axis, final float amount) throws LuaException
+            {
+                if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
+                if (axis.equalsIgnoreCase("x")) this.tile.getLift().setDestX((float) (this.tile.getLift().posX
+                        + amount));
+                if (axis.equalsIgnoreCase("y")) this.tile.getLift().setDestY((float) (this.tile.getLift().posY
+                        + amount));
+                if (axis.equalsIgnoreCase("z")) this.tile.getLift().setDestZ((float) (this.tile.getLift().posZ
+                        + amount));
+                return true;
+            }
+
+            public boolean goTo(int floor) throws LuaException
+            {
+                if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
+                if (floor < 0) floor = 64 - floor;
+                if (floor - 1 >= this.tile.getLift().maxFloors()) throw new LuaException("Floor not in range");
+                if (!this.tile.getLift().hasFloor(floor)) throw new LuaException("Floor not found.");
+                this.tile.getLift().call(floor);
+                return true;
+            }
+
+            public double[] find() throws LuaException
+            {
+                if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
+                return new double[] { this.tile.getLift().posX, this.tile.getLift().posY, this.tile.getLift().posZ };
+
+            }
+
+            public boolean has()
+            {
+                return this.tile.liftID != null;
+            }
+        }
+
         public static String[] METHODS = { "move_by", "goto_floor", "find", "has" };
 
-        private final ControllerTile tile;
+        private final Provider provider;
 
         public ElevatorPeripheral(final ControllerTile tile)
         {
-            this.tile = tile;
+            this.provider = new Provider(tile);
         }
 
         @Override
@@ -46,49 +88,16 @@ public class Peripherals
         }
 
         @Override
-        public String[] getMethodNames()
+        public Object getTarget()
         {
-            return ElevatorPeripheral.METHODS;
-        }
-
-        @Override
-        public Object[] callMethod(final IComputerAccess computer, final ILuaContext context, final int method,
-                final Object[] arguments) throws LuaException, InterruptedException
-        {
-            if (method != 3 && this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
-            String dir;
-            int dist;
-            switch (method)
-            {
-            case 0:
-                if (arguments.length != 2) throw new LuaException("Arguments: [x|y|z] [distance]");
-                dir = ArgumentHelper.getString(arguments, 0);
-                dist = ArgumentHelper.getInt(arguments, 1);
-                if (dir.equalsIgnoreCase("x")) this.tile.getLift().setDestX((float) (this.tile.getLift().posX + dist));
-                if (dir.equalsIgnoreCase("y")) this.tile.getLift().setDestY((float) (this.tile.getLift().posY + dist));
-                if (dir.equalsIgnoreCase("z")) this.tile.getLift().setDestZ((float) (this.tile.getLift().posZ + dist));
-                break;
-            case 1:
-                if (arguments.length != 1) throw new LuaException("Arguments: [floor]");
-                dist = ArgumentHelper.getInt(arguments, 0);
-                if (dist < 0) dist = 64 - dist;
-                if (dist - 1 >= this.tile.getLift().maxFloors()) throw new LuaException("Floor not in range");
-                if (!this.tile.getLift().hasFloor(dist)) throw new LuaException("Floor not found.");
-                this.tile.getLift().call(dist);
-                break;
-            case 2:
-                return new Object[] { this.tile.getLift().posX, this.tile.getLift().posY, this.tile.getLift().posZ };
-            case 3:
-                return new Object[] { this.tile.liftID != null ? true : false };
-            }
-
-            return null;
+            return this.provider;
         }
 
         @Override
         public boolean equals(final IPeripheral other)
         {
-            return other instanceof ElevatorPeripheral && ((ElevatorPeripheral) other).tile == this.tile;
+            return other instanceof ElevatorPeripheral
+                    && ((ElevatorPeripheral) other).provider.tile == this.provider.tile;
         }
 
     }
@@ -96,11 +105,12 @@ public class Peripherals
     public static class ElevatorPeripheralProvider implements IPeripheralProvider
     {
         @Override
-        public IPeripheral getPeripheral(final World world, final BlockPos pos, final Direction side)
+        public LazyOptional<IPeripheral> getPeripheral(final World world, final BlockPos pos, final Direction side)
         {
             final TileEntity tile = world.getTileEntity(pos);
-            if (tile instanceof ControllerTile) return new ElevatorPeripheral((ControllerTile) tile);
-            return null;
+            if (tile instanceof ControllerTile) return LazyOptional.of(() -> new ElevatorPeripheral(
+                    (ControllerTile) tile));
+            return LazyOptional.empty();
         }
     }
 
