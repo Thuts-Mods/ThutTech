@@ -17,7 +17,7 @@ import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.MinecraftForge;
@@ -92,7 +92,7 @@ public class EntityLift extends BlockEntityBase
 
     private final Vector3f velocity = new Vector3f();
 
-    private Vec3d motion = new Vec3d(0, 0, 0);
+    private Vector3d motion = new Vector3d(0, 0, 0);
 
     EntitySize size;
 
@@ -113,15 +113,15 @@ public class EntityLift extends BlockEntityBase
         if (this.isServerWorld() && !this.consumePower())
         {
             this.toMoveY = this.toMoveX = this.toMoveZ = false;
-            this.setDestX((float) this.posX);
+            this.setDestX((float) this.getPosX());
             this.setCalled(false);
         }
         else
         {
             // Otherwise set it to move if it has a destination.
-            this.toMoveX = this.getDestX() != this.posX;
-            this.toMoveY = this.getDestY() != this.posY;
-            this.toMoveZ = this.getDestZ() != this.posZ;
+            this.toMoveX = this.getDestX() != this.getPosX();
+            this.toMoveY = this.getDestY() != this.getPosY();
+            this.toMoveZ = this.getDestZ() != this.getPosZ();
         }
         if (!(this.toMoveX || this.toMoveY || this.toMoveZ)) this.setCalled(false);
 
@@ -141,46 +141,46 @@ public class EntityLift extends BlockEntityBase
                 final float destY = this.getDestY();
                 // If Sufficiently close (0,01 blocks) just snap the elevator to
                 // the destination.
-                if (Math.abs(destY - this.posY) < 0.01)
+                if (Math.abs(destY - this.getPosY()) < 0.01)
                 {
-                    this.setPosition(this.posX, destY, this.posZ);
+                    this.setPosition(this.getPosX(), destY, this.getPosZ());
                     this.toMoveY = false;
                     this.velocity.y = 0;
                 }
                 else
                 {
                     // Otherwise accelerate accordingly.
-                    final double dy = this.getSpeed(this.posY, destY, this.velocity.y, speedUp, speedDown);
+                    final double dy = this.getSpeed(this.getPosY(), destY, this.velocity.y, speedUp, speedDown);
                     this.velocity.y = (float) dy;
                 }
             }
             if (this.toMoveX)
             {
                 final float destX = this.getDestX();
-                if (Math.abs(destX - this.posX) < 0.01)
+                if (Math.abs(destX - this.getPosX()) < 0.01)
                 {
-                    this.setPosition(destX, this.posY, this.posZ);
+                    this.setPosition(destX, this.getPosY(), this.getPosZ());
                     this.toMoveX = false;
                     this.velocity.x = 0;
                 }
                 else
                 {
-                    final double dx = this.getSpeed(this.posX, destX, this.velocity.x, speedHoriz, speedHoriz);
+                    final double dx = this.getSpeed(this.getPosX(), destX, this.velocity.x, speedHoriz, speedHoriz);
                     this.velocity.x = (float) dx;
                 }
             }
             if (this.toMoveZ)
             {
                 final float destZ = this.getDestZ();
-                if (Math.abs(destZ - this.posZ) < 0.01)
+                if (Math.abs(destZ - this.getPosZ()) < 0.01)
                 {
-                    this.setPosition(this.posX, this.posY, destZ);
+                    this.setPosition(this.getPosX(), this.getPosY(), destZ);
                     this.toMoveZ = false;
                     this.velocity.z = 0;
                 }
                 else
                 {
-                    final double dz = this.getSpeed(this.posZ, destZ, this.velocity.z, speedHoriz, speedHoriz);
+                    final double dz = this.getSpeed(this.getPosZ(), destZ, this.velocity.z, speedHoriz, speedHoriz);
                     this.velocity.z = (float) dz;
                 }
             }
@@ -189,23 +189,13 @@ public class EntityLift extends BlockEntityBase
     }
 
     @Override
-    public void setRawPosition(final double x, final double y, final double z)
-    {
-        this.posX = x;
-        this.posY = y;
-        this.posZ = z;
-        if (this.isAddedToWorld() && !this.world.isRemote && this.isAlive()) this.world.getChunk((int) Math.floor(
-                this.posX) >> 4, (int) Math.floor(this.posZ) >> 4);
-    }
-
-    @Override
-    public Vec3d getMotion()
+    public Vector3d getMotion()
     {
         return this.motion;
     }
 
     @Override
-    public void setMotion(final Vec3d vec)
+    public void setMotion(final Vector3d vec)
     {
         this.motion = vec;
     }
@@ -245,7 +235,7 @@ public class EntityLift extends BlockEntityBase
         boolean power = false;
         final Vector3 bounds = Vector3.getNewVector().set(this.boundMax.subtract(this.boundMin));
         final double volume = bounds.x * bounds.y * bounds.z;
-        int energyCost = (int) (Math.abs(this.getDestY() - this.posY) * EntityLift.ENERGYCOST * volume * 0.01);
+        int energyCost = (int) (Math.abs(this.getDestY() - this.getPosY()) * EntityLift.ENERGYCOST * volume * 0.01);
         energyCost = Math.max(energyCost, 1);
         final int canExtract = this.energy.extractEnergy(energyCost, true);
         if (canExtract == energyCost)
@@ -257,7 +247,7 @@ public class EntityLift extends BlockEntityBase
         if (!power)
         {
             this.setDestinationFloor(-1);
-            this.setDestY((float) this.posY);
+            this.setDestY((float) this.getPosY());
             this.setCalled(false);
             this.toMoveY = false;
         }
@@ -435,8 +425,8 @@ public class EntityLift extends BlockEntityBase
     public void setDestX(final float dest)
     {
         this.dataManager.set(EntityLift.DESTINATIONXDW, Float.valueOf(dest));
-        this.dataManager.set(EntityLift.DESTINATIONYDW, Float.valueOf((float) this.posY));
-        this.dataManager.set(EntityLift.DESTINATIONZDW, Float.valueOf((float) this.posZ));
+        this.dataManager.set(EntityLift.DESTINATIONYDW, Float.valueOf((float) this.getPosY()));
+        this.dataManager.set(EntityLift.DESTINATIONZDW, Float.valueOf((float) this.getPosZ()));
         this.setCalled(true);
     }
 
@@ -447,8 +437,8 @@ public class EntityLift extends BlockEntityBase
     public void setDestY(final float dest)
     {
         this.dataManager.set(EntityLift.DESTINATIONYDW, Float.valueOf(dest));
-        this.dataManager.set(EntityLift.DESTINATIONXDW, Float.valueOf((float) this.posX));
-        this.dataManager.set(EntityLift.DESTINATIONZDW, Float.valueOf((float) this.posZ));
+        this.dataManager.set(EntityLift.DESTINATIONXDW, Float.valueOf((float) this.getPosX()));
+        this.dataManager.set(EntityLift.DESTINATIONZDW, Float.valueOf((float) this.getPosZ()));
         this.setCalled(true);
     }
 
@@ -459,8 +449,8 @@ public class EntityLift extends BlockEntityBase
     public void setDestZ(final float dest)
     {
         this.dataManager.set(EntityLift.DESTINATIONZDW, Float.valueOf(dest));
-        this.dataManager.set(EntityLift.DESTINATIONYDW, Float.valueOf((float) this.posY));
-        this.dataManager.set(EntityLift.DESTINATIONXDW, Float.valueOf((float) this.posX));
+        this.dataManager.set(EntityLift.DESTINATIONYDW, Float.valueOf((float) this.getPosY()));
+        this.dataManager.set(EntityLift.DESTINATIONXDW, Float.valueOf((float) this.getPosX()));
         this.setCalled(true);
     }
 

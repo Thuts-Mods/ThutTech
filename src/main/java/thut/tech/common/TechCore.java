@@ -81,7 +81,8 @@ public class TechCore
     public final static PacketHandler packets = new PacketHandler(new ResourceLocation(Reference.MOD_ID, "comms"),
             Reference.NETVERSION);
 
-    public static final CommonProxy proxy = DistExecutor.runForDist(() -> () -> new ClientProxy(),
+    public static final CommonProxy proxy = DistExecutor.safeRunForDist(
+            () -> () -> new ClientProxy(),
             () -> () -> new CommonProxy());
 
     public static Block LIFTCONTROLLER;

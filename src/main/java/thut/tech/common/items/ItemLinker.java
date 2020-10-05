@@ -10,6 +10,7 @@ import net.minecraft.item.ItemUseContext;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Direction;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -46,7 +47,7 @@ public class ItemLinker extends Item
         if (!stack.hasTag()) return ActionResultType.PASS;
         else
         {
-            if (state.getBlock() == TechCore.LIFTCONTROLLER && !playerIn.isShiftKeyDown())
+            if (state.getBlock() == TechCore.LIFTCONTROLLER && !playerIn.isSneaking())
             {
                 final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
                 te.setSide(face, true);
@@ -63,7 +64,7 @@ public class ItemLinker extends Item
                 liftID = new UUID(0000, 0000);
             }
             final EntityLift lift = EntityLift.getLiftFromUUID(liftID, worldIn);
-            if (playerIn.isShiftKeyDown() && lift != null && state.getBlock() == TechCore.LIFTCONTROLLER)
+            if (playerIn.isSneaking() && lift != null && state.getBlock() == TechCore.LIFTCONTROLLER)
             {
                 if (face != Direction.UP && face != Direction.DOWN)
                 {
@@ -74,11 +75,12 @@ public class ItemLinker extends Item
                     te.setFloor(floor);
                     if (floor >= 64) floor = 64 - floor;
                     final String message = "msg.floorSet";
-                    if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message, floor));
+                    if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message, floor),
+                            Util.DUMMY_UUID);
                     return ActionResultType.SUCCESS;
                 }
             }
-            else if (playerIn.isShiftKeyDown() && state.getBlock() == TechCore.LIFTCONTROLLER)
+            else if (playerIn.isSneaking() && state.getBlock() == TechCore.LIFTCONTROLLER)
             {
                 if (face != Direction.UP && face != Direction.DOWN)
                 {
@@ -87,15 +89,15 @@ public class ItemLinker extends Item
                     te.setSidePage(face, 0);
                     final String message = "msg.editMode";
                     if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message, te.editFace[face
-                            .ordinal()]));
+                            .ordinal()]), Util.DUMMY_UUID);
                     return ActionResultType.SUCCESS;
                 }
             }
-            else if (playerIn.isShiftKeyDown())
+            else if (playerIn.isSneaking())
             {
                 stack.setTag(new CompoundNBT());
                 final String message = "msg.linker.reset";
-                if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message));
+                if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message), Util.DUMMY_UUID);
             }
         }
         return ActionResultType.PASS;

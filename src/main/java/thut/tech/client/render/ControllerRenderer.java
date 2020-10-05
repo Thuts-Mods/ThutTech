@@ -14,7 +14,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.renderer.BlockRendererDispatcher;
 import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.Matrix4f;
 import net.minecraft.client.renderer.RenderState;
 import net.minecraft.client.renderer.RenderState.AlphaState;
 import net.minecraft.client.renderer.RenderState.TextureState;
@@ -22,7 +21,6 @@ import net.minecraft.client.renderer.RenderState.TransparencyState;
 import net.minecraft.client.renderer.RenderState.WriteMaskState;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.RenderTypeLookup;
-import net.minecraft.client.renderer.Vector3f;
 import net.minecraft.client.renderer.model.IBakedModel;
 import net.minecraft.client.renderer.tileentity.TileEntityRenderer;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
@@ -31,6 +29,8 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.vector.Matrix4f;
+import net.minecraft.util.math.vector.Vector3f;
 import net.minecraft.world.World;
 import net.minecraftforge.client.model.data.EmptyModelData;
 import net.minecraftforge.client.model.data.IModelData;
@@ -64,7 +64,7 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
             final float a, final float u1, final float u2, final float v1, final float v2)
     {
         final IVertexBuilder buffer = buff.getBuffer(type);
-        final Matrix4f o = mat.getLast().getPositionMatrix();
+        final Matrix4f o = mat.getLast().getMatrix();
         buffer.pos(o, x2, y2, 0).color(r, g, b, a).tex(u1, v1).endVertex();
         buffer.pos(o, x2, y1, 0).color(r, g, b, a).tex(u1, v2).endVertex();
         buffer.pos(o, x1, y1, 0).color(r, g, b, a).tex(u2, v2).endVertex();
@@ -85,15 +85,15 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
 
     private static RenderType.State getState(final ResourceLocation texture)
     {
-        return RenderType.State.builder().texture(new TextureState(texture, false, true)).transparency(
-                ControllerRenderer.TRANSP).writeMask(ControllerRenderer.MASK).alpha(ControllerRenderer.ALPHA).build(
-                        false);
+        return RenderType.State.getBuilder().texture(new TextureState(texture, false, true))
+                .transparency(ControllerRenderer.TRANSP).writeMask(ControllerRenderer.MASK).alpha(
+                        ControllerRenderer.ALPHA).build(false);
     }
 
     public static RenderType makeType(final ResourceLocation tex)
     {
-        return RenderType.get(tex.toString(), DefaultVertexFormats.POSITION_COLOR_TEX, GL11.GL_QUADS, 256, false, true,
-                ControllerRenderer.getState(tex));
+        return RenderType.makeType(tex.toString(), DefaultVertexFormats.POSITION_COLOR_TEX, GL11.GL_QUADS, 256, false,
+                true, ControllerRenderer.getState(tex));
     }
 
     private static RenderType       NUMBERS   = ControllerRenderer.makeType(ControllerRenderer.font);

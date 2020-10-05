@@ -15,6 +15,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -124,7 +125,7 @@ public class ControllerBlock extends Block
         final ItemStack heldItem = playerIn.getHeldItem(handIn);
         final Direction side = hit.getFace();
         final boolean linkerOrStick = heldItem.getItem() == Items.STICK || heldItem.getItem() == TechCore.LINKER;
-        if (linkerOrStick && playerIn.isShiftKeyDown())
+        if (linkerOrStick && playerIn.isSneaking())
         {
             final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
             if (te == null) return ActionResultType.PASS;
@@ -173,7 +174,7 @@ public class ControllerBlock extends Block
             }
             return ActionResultType.SUCCESS;
         }
-        else if (!playerIn.isShiftKeyDown())
+        else if (!playerIn.isSneaking())
         {
             final float hitX = (float) hit.getHitVec().x;
             final float hitY = (float) hit.getHitVec().y;
@@ -182,22 +183,25 @@ public class ControllerBlock extends Block
                     : ActionResultType.PASS;
         }
 
-        if (playerIn.isShiftKeyDown() && handIn == Hand.MAIN_HAND && playerIn instanceof ServerPlayerEntity)
+        if (playerIn.isSneaking() && handIn == Hand.MAIN_HAND && playerIn instanceof ServerPlayerEntity)
         {
             final boolean sideOn = !te.isSideOn(side);
-            playerIn.sendMessage(new TranslationTextComponent("msg.lift.side." + (sideOn ? "on" : "off")));
+            playerIn.sendMessage(new TranslationTextComponent("msg.lift.side." + (sideOn ? "on" : "off")),
+                    Util.DUMMY_UUID);
             if (sideOn)
             {
                 final boolean call = te.isCallPanel(side);
                 final boolean edit = te.isEditMode(side);
                 final boolean display = te.isFloorDisplay(side);
-                if (edit) playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.edit"));
-                else if (call) playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.call"));
-                else if (display) playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.display"));
+                if (edit) playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.edit"), Util.DUMMY_UUID);
+                else if (call) playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.call"),
+                        Util.DUMMY_UUID);
+                else if (display) playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.display"),
+                        Util.DUMMY_UUID);
                 else
                 {
                     final int page = te.getSidePage(side);
-                    playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.page", page));
+                    playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.page", page), Util.DUMMY_UUID);
                 }
             }
         }

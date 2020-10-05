@@ -40,11 +40,11 @@ public class Peripherals
             public boolean moveBy(final String axis, final float amount) throws LuaException
             {
                 if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
-                if (axis.equalsIgnoreCase("x")) this.tile.getLift().setDestX((float) (this.tile.getLift().posX
+                if (axis.equalsIgnoreCase("x")) this.tile.getLift().setDestX((float) (this.tile.getLift().getPosX()
                         + amount));
-                if (axis.equalsIgnoreCase("y")) this.tile.getLift().setDestY((float) (this.tile.getLift().posY
+                if (axis.equalsIgnoreCase("y")) this.tile.getLift().setDestY((float) (this.tile.getLift().getPosY()
                         + amount));
-                if (axis.equalsIgnoreCase("z")) this.tile.getLift().setDestZ((float) (this.tile.getLift().posZ
+                if (axis.equalsIgnoreCase("z")) this.tile.getLift().setDestZ((float) (this.tile.getLift().getPosZ()
                         + amount));
                 return true;
             }
@@ -62,7 +62,8 @@ public class Peripherals
             public double[] find() throws LuaException
             {
                 if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
-                return new double[] { this.tile.getLift().posX, this.tile.getLift().posY, this.tile.getLift().posZ };
+                return new double[] { this.tile.getLift().getPosX(), this.tile.getLift().getPosY(), this.tile.getLift()
+                        .getPosZ() };
 
             }
 

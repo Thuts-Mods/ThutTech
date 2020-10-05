@@ -15,6 +15,7 @@ import net.minecraft.tileentity.ITickableTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
@@ -120,13 +121,14 @@ public class ControllerTile extends TileEntity implements ITickableTileEntity// 
                 case 1:
                     this.callFaces[side.ordinal()] = !this.isCallPanel(side);
                     this.floorDisplay[side.ordinal()] = false;
-                    clicker.sendMessage(new TranslationTextComponent(message, this.isCallPanel(side)));
+                    clicker.sendMessage(new TranslationTextComponent(message, this.isCallPanel(side)), Util.DUMMY_UUID);
                     break;
                 case 2:
                     this.floorDisplay[side.ordinal()] = !this.isFloorDisplay(side);
                     this.callFaces[side.ordinal()] = false;
                     message = "msg.floorDisplay";
-                    clicker.sendMessage(new TranslationTextComponent(message, this.isFloorDisplay(side)));
+                    clicker.sendMessage(new TranslationTextComponent(message, this.isFloorDisplay(side)),
+                            Util.DUMMY_UUID);
                     break;
                 case 13:
                     if (this.getLift() != null) this.setLift(null);
@@ -134,7 +136,7 @@ public class ControllerTile extends TileEntity implements ITickableTileEntity// 
                 case 16:
                     this.editFace[side.ordinal()] = false;
                     message = "msg.editMode";
-                    clicker.sendMessage(new TranslationTextComponent(message, false));
+                    clicker.sendMessage(new TranslationTextComponent(message, false), Util.DUMMY_UUID);
                     break;
                 }
                 if (clicker instanceof ServerPlayerEntity) this.sendUpdate((ServerPlayerEntity) clicker);
@@ -227,9 +229,9 @@ public class ControllerTile extends TileEntity implements ITickableTileEntity// 
     }
 
     @Override
-    public void handleUpdateTag(final CompoundNBT tag)
+    public void handleUpdateTag(final BlockState stateIn, final CompoundNBT tag)
     {
-        this.read(tag);
+        this.read(stateIn, tag);
     }
 
     public boolean isSideOn(final Direction side)
@@ -255,9 +257,9 @@ public class ControllerTile extends TileEntity implements ITickableTileEntity// 
     }
 
     @Override
-    public void read(final CompoundNBT par1)
+    public void read(final BlockState stateIn, final CompoundNBT par1)
     {
-        super.read(par1);
+        super.read(stateIn, par1);
         this.floor = par1.getInt("floor");
         // Reset this so that it will re-find after loading.
         this.lift = null;
@@ -385,7 +387,7 @@ public class ControllerTile extends TileEntity implements ITickableTileEntity// 
 
             // Set lifts current floor to this if it is in the area of the
             // floor.
-            if ((int) Math.round(this.getLift().posY) == yWhenLiftHere) lift.setCurrentFloor(this.floor);
+            if ((int) Math.round(this.getLift().getPosY()) == yWhenLiftHere) lift.setCurrentFloor(this.floor);
             else if (this.getLift().getCurrentFloor() == this.floor) lift.setCurrentFloor(-1);
 
             // Below here is server side only for these checks

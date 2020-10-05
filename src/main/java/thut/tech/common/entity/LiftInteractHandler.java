@@ -9,6 +9,7 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TranslationTextComponent;
 import thut.api.entity.blockentity.BlockEntityInteractHandler;
@@ -35,7 +36,8 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
     }
 
     @Override
-    public boolean processInitialInteract(final PlayerEntity player, @Nullable ItemStack stack, final Hand hand)
+    public ActionResultType processInitialInteract(final PlayerEntity player, @Nullable ItemStack stack,
+            final Hand hand)
     {
 
         final boolean isElevatorItemOrStick = stack.getItem() == Items.STICK || stack.getItem() == TechCore.LIFT;
@@ -44,10 +46,10 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
         final boolean canEdit = this.lift.owner != null && player.getUniqueID().equals(this.lift.owner)
                 || player.abilities.isCreativeMode;
 
-        final boolean shouldLinkLift = player.isShiftKeyDown() && isLinker && canEdit;
+        final boolean shouldLinkLift = player.isSneaking() && isLinker && canEdit;
         final boolean shouldKillLiftUnowned = this.lift.owner == null;
         final boolean shouldDisplayOwner = isLinker && canEdit;
-        final boolean shouldKillLiftOwned = player.isShiftKeyDown() && isElevatorItemOrStick && canEdit;
+        final boolean shouldKillLiftOwned = player.isSneaking() && isElevatorItemOrStick && canEdit;
 
         if (shouldKillLiftUnowned)
         {
@@ -55,7 +57,7 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
             if (!this.lift.getEntityWorld().isRemote)
             {
                 final String message = "msg.lift.killed";
-                player.sendMessage(new TranslationTextComponent(message));
+                player.sendMessage(new TranslationTextComponent(message), Util.DUMMY_UUID);
                 if (LiftInteractHandler.DROPSPARTS)
                 {
                     final BlockPos max = this.lift.boundMax;
@@ -68,7 +70,7 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
                 }
                 this.lift.remove();
             }
-            return true;
+            return ActionResultType.SUCCESS;
         }
         else if (shouldLinkLift)
         {
@@ -77,8 +79,9 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
 
             final String message = "msg.liftSet";
 
-            if (!this.lift.getEntityWorld().isRemote) player.sendMessage(new TranslationTextComponent(message));
-            return true;
+            if (!this.lift.getEntityWorld().isRemote) player.sendMessage(new TranslationTextComponent(message),
+                    Util.DUMMY_UUID);
+            return ActionResultType.SUCCESS;
         }
         else if (shouldDisplayOwner)
         {
@@ -87,16 +90,16 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
                 final Entity ownerentity = this.lift.getEntityWorld().getPlayerByUuid(this.lift.owner);
                 final String message = "msg.lift.owner";
 
-                player.sendMessage(new TranslationTextComponent(message, ownerentity.getName()));
+                player.sendMessage(new TranslationTextComponent(message, ownerentity.getName()), Util.DUMMY_UUID);
             }
-            return true;
+            return ActionResultType.SUCCESS;
         }
         else if (shouldKillLiftOwned)
         {
             if (!this.lift.getEntityWorld().isRemote)
             {
                 final String message = "msg.lift.killed";
-                player.sendMessage(new TranslationTextComponent(message));
+                player.sendMessage(new TranslationTextComponent(message), Util.DUMMY_UUID);
                 if (LiftInteractHandler.DROPSPARTS)
                 {
                     final BlockPos max = this.lift.boundMax;
@@ -109,8 +112,8 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
                 }
                 this.lift.remove();
             }
-            return true;
+            return ActionResultType.SUCCESS;
         }
-        return false;
+        return ActionResultType.PASS;
     }
 }
