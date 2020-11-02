@@ -25,7 +25,7 @@ import thut.tech.common.blocks.lift.ControllerTile;
 import thut.tech.common.entity.EntityLift;
 import thut.tech.common.handlers.ConfigHandler;
 import thut.tech.common.items.ItemLinker;
-import thut.tech.common.items.RecipeReset;
+import thut.tech.common.util.RecipeSerializers;
 
 @Mod(value = Reference.MOD_ID)
 public class TechCore
@@ -60,12 +60,6 @@ public class TechCore
             controller.setRegistryName(TechCore.LIFTCONTROLLER.getRegistryName());
             event.getRegistry().register(controller);
             ThutCore.THUTICON = new ItemStack(TechCore.LINKER);
-        }
-
-        @SubscribeEvent
-        public static void registerRecipes(final RegistryEvent.Register<IRecipeSerializer<?>> event)
-        {
-            event.getRegistry().register(RecipeReset.SERIALIZER);
         }
 
         @SubscribeEvent
@@ -111,6 +105,9 @@ public class TechCore
         FMLJavaModLoadingContext.get().getModEventBus().addListener(TechCore.proxy::setup);
         // Register the doClientStuff method for modloading
         FMLJavaModLoadingContext.get().getModEventBus().addListener(TechCore.proxy::setupClient);
+
+        // Register recipe serializers
+        RecipeSerializers.RECIPE_SERIALIZERS.register(FMLJavaModLoadingContext.get().getModEventBus());
 
         // Register Config stuff
         Config.setupConfigs(TechCore.config, Reference.MOD_ID, Reference.MOD_ID);

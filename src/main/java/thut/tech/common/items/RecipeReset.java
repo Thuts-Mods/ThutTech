@@ -4,16 +4,13 @@ import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipeSerializer;
 import net.minecraft.item.crafting.SpecialRecipe;
-import net.minecraft.item.crafting.SpecialRecipeSerializer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import thut.tech.common.TechCore;
+import thut.tech.common.util.RecipeSerializers;
 
 public class RecipeReset extends SpecialRecipe
 {
-    public static final IRecipeSerializer<RecipeReset> SERIALIZER = IRecipeSerializer.register("thuttech:resetlinker",
-            new SpecialRecipeSerializer<>(RecipeReset::new));
-
     public RecipeReset(final ResourceLocation idIn)
     {
         super(idIn);
@@ -38,7 +35,7 @@ public class RecipeReset extends SpecialRecipe
     @Override
     public IRecipeSerializer<?> getSerializer()
     {
-        return RecipeReset.SERIALIZER;
+        return RecipeSerializers.RECIPE_RESET_SERIALIZER.get();
     }
 
     @Override
