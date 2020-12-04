@@ -339,11 +339,8 @@ public class ControllerTile extends TileEntity implements ITickableTileEntity// 
         if (this.here == null) this.here = Vector3.getNewVector();
         this.here.set(this);
         EntityLift lift = this.getLift();
-        // if (this.liftID != null)
-        // {
-        // System.out.println(lift + " " + this.liftID);
-        // System.out.println(this.floor);
-        // }
+
+        // Processing beyond here is only server side!
         if (this.getWorld().isRemote) return;
         if (this.world instanceof IBlockEntityWorld) return;
 
@@ -456,6 +453,14 @@ public class ControllerTile extends TileEntity implements ITickableTileEntity// 
         else if (this.lift == null)
         {
             this.lift = EntityLift.getLiftFromUUID(this.liftID, this.getWorld());
+
+            // Client side process this differently for when the tile entity
+            // ticks before the lift actually loads in.
+            if (this.getWorld().isRemote)
+            {
+                if (this.lift != null) this.setLift(this.lift);
+                return this.lift;
+            }
 
             if (this.lift == null) this.setLift(null);
             else
