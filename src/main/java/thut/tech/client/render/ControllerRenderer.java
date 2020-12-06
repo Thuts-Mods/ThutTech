@@ -64,7 +64,7 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
             final float a, final float u1, final float u2, final float v1, final float v2)
     {
         final IVertexBuilder buffer = buff.getBuffer(type);
-        final Matrix4f o = mat.getLast().getPositionMatrix();
+        final Matrix4f o = mat.getLast().getMatrix();
         buffer.pos(o, x2, y2, 0).color(r, g, b, a).tex(u1, v1).endVertex();
         buffer.pos(o, x2, y1, 0).color(r, g, b, a).tex(u1, v2).endVertex();
         buffer.pos(o, x1, y1, 0).color(r, g, b, a).tex(u2, v2).endVertex();
@@ -85,15 +85,15 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
 
     private static RenderType.State getState(final ResourceLocation texture)
     {
-        return RenderType.State.builder().texture(new TextureState(texture, false, true)).transparency(
+        return RenderType.State.getBuilder().texture(new TextureState(texture, false, true)).transparency(
                 ControllerRenderer.TRANSP).writeMask(ControllerRenderer.MASK).alpha(ControllerRenderer.ALPHA).build(
                         false);
     }
 
     public static RenderType makeType(final ResourceLocation tex)
     {
-        return RenderType.get(tex.toString(), DefaultVertexFormats.POSITION_COLOR_TEX, GL11.GL_QUADS, 256, false, true,
-                ControllerRenderer.getState(tex));
+        return RenderType.makeType(tex.toString(), DefaultVertexFormats.POSITION_COLOR_TEX, GL11.GL_QUADS, 256, false,
+                true, ControllerRenderer.getState(tex));
     }
 
     private static RenderType       NUMBERS   = ControllerRenderer.makeType(ControllerRenderer.font);
@@ -253,7 +253,7 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
         int currentFloor = 0;
         boolean hasLinker = Screen.hasShiftDown();
         hasLinker = hasLinker && (Minecraft.getInstance().player.getHeldItemMainhand().getItem() == TechCore.LINKER
-                || Minecraft.getInstance().player.getHeldItemOffhand().getItem() == TechCore.LINKER);
+                .get() || Minecraft.getInstance().player.getHeldItemOffhand().getItem() == TechCore.LINKER.get());
 
         final EntityLift lift = monitor.getLift();
         if (lift != null)

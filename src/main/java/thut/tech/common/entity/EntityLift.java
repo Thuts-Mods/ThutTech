@@ -8,7 +8,6 @@ import com.google.common.collect.Maps;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntitySize;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.MoverType;
 import net.minecraft.entity.Pose;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
@@ -38,8 +37,6 @@ public class EntityLift extends BlockEntityBase
     {
         protected static final Map<UUID, EntityLift> liftMap = Maps.newHashMap();
     }
-
-    public static final EntityType<EntityLift> TYPE = new BlockEntityType<>(EntityLift::new);
 
     static final DataParameter<Integer> DESTINATIONFLOORDW;
     static final DataParameter<Float>   DESTINATIONYDW;
@@ -99,8 +96,6 @@ public class EntityLift extends BlockEntityBase
     public EntityLift(final EntityType<EntityLift> type, final World par1World)
     {
         super(type, par1World);
-        this.ignoreFrustumCheck = true;
-        this.hurtResistantTime = 0;
     }
 
     @Override
@@ -268,16 +263,6 @@ public class EntityLift extends BlockEntityBase
     protected BlockEntityInteractHandler createInteractHandler()
     {
         return new LiftInteractHandler(this);
-    }
-
-    @Override
-    public void doMotion()
-    {
-        if (!this.toMoveX) this.velocity.x = 0;
-        if (!this.toMoveY) this.velocity.y = 0;
-        if (!this.toMoveZ) this.velocity.z = 0;
-        this.setMotion(this.velocity.x, this.velocity.y, this.velocity.z);
-        this.move(MoverType.SELF, this.getMotion());
     }
 
     public boolean getCalled()

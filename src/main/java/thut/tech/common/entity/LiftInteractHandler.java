@@ -35,19 +35,21 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
     }
 
     @Override
-    public boolean processInitialInteract(final PlayerEntity player, @Nullable ItemStack stack, final Hand hand)
+    public boolean processInitialInteract(final PlayerEntity player,
+            @Nullable ItemStack stack,
+            final Hand hand)
     {
 
-        final boolean isElevatorItemOrStick = stack.getItem() == Items.STICK || stack.getItem() == TechCore.LIFT;
-        final boolean isLinker = stack.getItem() == TechCore.LINKER;
+        final boolean isElevatorItemOrStick = stack.getItem() == Items.STICK || stack.getItem() == TechCore.LIFT.get();
+        final boolean isLinker = stack.getItem() == TechCore.LINKER.get();
 
         final boolean canEdit = this.lift.owner != null && player.getUniqueID().equals(this.lift.owner)
                 || player.abilities.isCreativeMode;
 
-        final boolean shouldLinkLift = player.isShiftKeyDown() && isLinker && canEdit;
+        final boolean shouldLinkLift = player.isSneaking() && isLinker && canEdit;
         final boolean shouldKillLiftUnowned = this.lift.owner == null;
         final boolean shouldDisplayOwner = isLinker && canEdit;
-        final boolean shouldKillLiftOwned = player.isShiftKeyDown() && isElevatorItemOrStick && canEdit;
+        final boolean shouldKillLiftOwned = player.isSneaking() && isElevatorItemOrStick && canEdit;
 
         if (shouldKillLiftUnowned)
         {
@@ -62,7 +64,7 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
                     final BlockPos min = this.lift.boundMin;
                     final int dw = Math.max(max.getX() - min.getX(), max.getZ() - min.getZ());
                     final int num = (dw + 1) * (max.getY() - min.getY() + 1);
-                    stack = new ItemStack(TechCore.LIFT);
+                    stack = new ItemStack(TechCore.LIFT.get());
                     stack.setCount(num);
                     player.dropItem(stack, false, true);
                 }
@@ -103,7 +105,7 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
                     final BlockPos min = this.lift.boundMin;
                     final int dw = Math.max(max.getX() - min.getX(), max.getZ() - min.getZ());
                     final int num = (dw + 1) * (max.getY() - min.getY() + 1);
-                    stack = new ItemStack(TechCore.LIFT);
+                    stack = new ItemStack(TechCore.LIFT.get());
                     stack.setCount(num);
                     player.dropItem(stack, false, true);
                 }

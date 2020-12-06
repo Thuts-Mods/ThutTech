@@ -24,14 +24,13 @@ import thut.api.entity.blockentity.IBlockEntity;
 import thut.api.entity.blockentity.world.IBlockEntityWorld;
 import thut.api.maths.Vector3;
 import thut.core.common.network.TileUpdate;
+import thut.tech.common.TechCore;
 import thut.tech.common.entity.EntityLift;
 import thut.tech.common.network.PacketLift;
 
 public class ControllerTile extends TileEntity implements ITickableTileEntity// ,
 // SimpleComponent
 {
-    public static TileEntityType<? extends TileEntity> TYPE;
-
     public int                    power        = 0;
     public int                    prevPower    = 1;
     private EntityLift            lift;
@@ -63,7 +62,7 @@ public class ControllerTile extends TileEntity implements ITickableTileEntity// 
 
     public ControllerTile()
     {
-        super(ControllerTile.TYPE);
+        super(TechCore.CONTROLTYPE.get());
     }
 
     public ControllerTile(final TileEntityType<?> tileEntityTypeIn)
