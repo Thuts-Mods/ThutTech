@@ -40,8 +40,8 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
             final Hand hand)
     {
 
-        final boolean isElevatorItemOrStick = stack.getItem() == Items.STICK || stack.getItem() == TechCore.LIFT;
-        final boolean isLinker = stack.getItem() == TechCore.LINKER;
+        final boolean isElevatorItemOrStick = stack.getItem() == Items.STICK || stack.getItem() == TechCore.LIFT.get();
+        final boolean isLinker = stack.getItem() == TechCore.LINKER.get();
 
         final boolean canEdit = this.lift.owner != null && player.getUniqueID().equals(this.lift.owner)
                 || player.abilities.isCreativeMode;
@@ -64,7 +64,7 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
                     final BlockPos min = this.lift.boundMin;
                     final int dw = Math.max(max.getX() - min.getX(), max.getZ() - min.getZ());
                     final int num = (dw + 1) * (max.getY() - min.getY() + 1);
-                    stack = new ItemStack(TechCore.LIFT);
+                    stack = new ItemStack(TechCore.LIFT.get());
                     stack.setCount(num);
                     player.dropItem(stack, false, true);
                 }
@@ -106,7 +106,7 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
                     final BlockPos min = this.lift.boundMin;
                     final int dw = Math.max(max.getX() - min.getX(), max.getZ() - min.getZ());
                     final int num = (dw + 1) * (max.getY() - min.getY() + 1);
-                    stack = new ItemStack(TechCore.LIFT);
+                    stack = new ItemStack(TechCore.LIFT.get());
                     stack.setCount(num);
                     player.dropItem(stack, false, true);
                 }

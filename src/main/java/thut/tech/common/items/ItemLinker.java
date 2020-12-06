@@ -37,7 +37,7 @@ public class ItemLinker extends Item
         final Direction face = context.getFace();
 
         final boolean linked = stack.hasTag() && stack.getTag().contains("lift");
-        if (!linked && state.getBlock() == TechCore.LIFTCONTROLLER)
+        if (!linked && state.getBlock() == TechCore.LIFTCONTROLLER.get())
         {
             final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
             te.editFace[face.ordinal()] = !te.editFace[face.ordinal()];
@@ -47,7 +47,7 @@ public class ItemLinker extends Item
         if (!stack.hasTag()) return ActionResultType.PASS;
         else
         {
-            if (state.getBlock() == TechCore.LIFTCONTROLLER && !playerIn.isSneaking())
+            if (state.getBlock() == TechCore.LIFTCONTROLLER.get() && !playerIn.isSneaking())
             {
                 final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
                 te.setSide(face, true);
@@ -64,7 +64,7 @@ public class ItemLinker extends Item
                 liftID = new UUID(0000, 0000);
             }
             final EntityLift lift = EntityLift.getLiftFromUUID(liftID, worldIn);
-            if (playerIn.isSneaking() && lift != null && state.getBlock() == TechCore.LIFTCONTROLLER)
+            if (playerIn.isSneaking() && lift != null && state.getBlock() == TechCore.LIFTCONTROLLER.get())
             {
                 if (face != Direction.UP && face != Direction.DOWN)
                 {
@@ -80,7 +80,7 @@ public class ItemLinker extends Item
                     return ActionResultType.SUCCESS;
                 }
             }
-            else if (playerIn.isSneaking() && state.getBlock() == TechCore.LIFTCONTROLLER)
+            else if (playerIn.isSneaking() && state.getBlock() == TechCore.LIFTCONTROLLER.get())
             {
                 if (face != Direction.UP && face != Direction.DOWN)
                 {

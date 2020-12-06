@@ -25,7 +25,6 @@ import net.minecraft.client.renderer.model.IBakedModel;
 import net.minecraft.client.renderer.tileentity.TileEntityRenderer;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -39,7 +38,7 @@ import thut.tech.common.TechCore;
 import thut.tech.common.blocks.lift.ControllerTile;
 import thut.tech.common.entity.EntityLift;
 
-public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer<T>
+public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
 {
 
     private static final ResourceLocation overlay   = new ResourceLocation("thuttech:textures/blocks/overlay.png");
@@ -85,9 +84,9 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
 
     private static RenderType.State getState(final ResourceLocation texture)
     {
-        return RenderType.State.getBuilder().texture(new TextureState(texture, false, true))
-                .transparency(ControllerRenderer.TRANSP).writeMask(ControllerRenderer.MASK).alpha(
-                        ControllerRenderer.ALPHA).build(false);
+        return RenderType.State.getBuilder().texture(new TextureState(texture, false, true)).transparency(
+                ControllerRenderer.TRANSP).writeMask(ControllerRenderer.MASK).alpha(ControllerRenderer.ALPHA).build(
+                        false);
     }
 
     public static RenderType makeType(final ResourceLocation tex)
@@ -244,16 +243,16 @@ public class ControllerRenderer<T extends TileEntity> extends TileEntityRenderer
     }
 
     @Override
-    public void render(final T tileentity, final float partialTicks, final MatrixStack mat,
+    public void render(final ControllerTile tileentity, final float partialTicks, final MatrixStack mat,
             final IRenderTypeBuffer buff, final int combinedLightIn, final int combinedOverlayIn)
     {
-        final ControllerTile monitor = (ControllerTile) tileentity;
+        final ControllerTile monitor = tileentity;
 
         int calledFloor = 0;
         int currentFloor = 0;
         boolean hasLinker = Screen.hasShiftDown();
         hasLinker = hasLinker && (Minecraft.getInstance().player.getHeldItemMainhand().getItem() == TechCore.LINKER
-                || Minecraft.getInstance().player.getHeldItemOffhand().getItem() == TechCore.LINKER);
+                .get() || Minecraft.getInstance().player.getHeldItemOffhand().getItem() == TechCore.LINKER.get());
 
         final EntityLift lift = monitor.getLift();
         if (lift != null)

@@ -124,7 +124,7 @@ public class ControllerBlock extends Block
     {
         final ItemStack heldItem = playerIn.getHeldItem(handIn);
         final Direction side = hit.getFace();
-        final boolean linkerOrStick = heldItem.getItem() == Items.STICK || heldItem.getItem() == TechCore.LINKER;
+        final boolean linkerOrStick = heldItem.getItem() == Items.STICK || heldItem.getItem() == TechCore.LINKER.get();
         if (linkerOrStick && playerIn.isSneaking())
         {
             final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
@@ -164,7 +164,7 @@ public class ControllerBlock extends Block
                 return ActionResultType.SUCCESS;
             }
         }
-        else if (te.isSideOn(side)) if (heldItem.getItem() == TechCore.LINKER)
+        else if (te.isSideOn(side)) if (heldItem.getItem() == TechCore.LINKER.get())
         {
             if (!worldIn.isRemote && !te.isEditMode(side) && !te.isFloorDisplay(side))
             {

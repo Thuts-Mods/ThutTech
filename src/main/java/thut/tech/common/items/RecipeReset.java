@@ -24,11 +24,11 @@ public class RecipeReset extends SpecialRecipe
         for (int i = 0; i < inv.getSizeInventory(); i++)
         {
             final ItemStack stack = inv.getStackInSlot(i);
-            if (stack.getItem() == TechCore.LINKER) matched = true;
+            if (stack.getItem() == TechCore.LINKER.get()) matched = true;
             n++;
         }
         if (n != 1) matched = false;
-        if (matched) return new ItemStack(TechCore.LINKER);
+        if (matched) return new ItemStack(TechCore.LINKER.get());
         return ItemStack.EMPTY;
     }
 
