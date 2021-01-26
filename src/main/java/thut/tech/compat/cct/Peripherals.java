@@ -1,7 +1,12 @@
-package thut.tech.compat.cct;
+curseforgepackage thut.tech.compat.cct;
 
 import dan200.computercraft.api.ComputerCraftAPI;
+import dan200.computercraft.api.lua.IArguments;
+import dan200.computercraft.api.lua.ILuaContext;
 import dan200.computercraft.api.lua.LuaException;
+import dan200.computercraft.api.lua.MethodResult;
+import dan200.computercraft.api.peripheral.IComputerAccess;
+import dan200.computercraft.api.peripheral.IDynamicPeripheral;
 import dan200.computercraft.api.peripheral.IPeripheral;
 import dan200.computercraft.api.peripheral.IPeripheralProvider;
 import net.minecraft.tileentity.TileEntity;
@@ -11,6 +16,8 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.LazyOptional;
 import thut.core.common.ThutCore;
 import thut.tech.common.blocks.lift.ControllerTile;
+
+import java.util.Arrays;
 
 public class Peripherals
 {
@@ -26,8 +33,10 @@ public class Peripherals
         }
     }
 
-    public static class ElevatorPeripheral implements IPeripheral
+    public static class ElevatorPeripheral implements IDynamicPeripheral
     {
+
+
         public static class Provider
         {
             private final ControllerTile tile;
@@ -66,14 +75,84 @@ public class Peripherals
                         .getPosZ() };
 
             }
-
             public boolean has()
             {
                 return this.tile.liftID != null;
             }
+
+          public boolean isReady() throws LuaException {
+              if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
+
+              return this.tile.getLift().getCurrentFloor() == this.tile.getLift().getDestinationFloor();
+            }
+
+          public boolean setFloor(int floor) throws LuaException {
+              if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
+              if(this.tile.floor != floor) {
+                    this.tile.floor = floor;
+                    return true;
+                }
+                return false;
+
+          }
+          public double getCoord(String axis) throws LuaException {
+              if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
+              if (axis.equalsIgnoreCase("x")) {
+                  return this.tile.getLift().getPosX();
+              }
+              if (axis.equalsIgnoreCase("y")) {
+                  return this.tile.getLift().getPosY();
+              }
+              if (axis.equalsIgnoreCase("z")) {
+                  return this.tile.getLift().getPosZ();
+              }
+              return -1;
+          }
+          public double getFloorYValue(int floor) throws LuaException {
+              if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
+              return this.tile.getLift().getFloorPos(floor);
+          }
+        }
+        @Override
+        public String[] getMethodNames() {
+            return new String[]{ "move_by", "goto_floor", "find", "has", "isReady", "callFloor",
+                    "callXValue", "callYValue", "callZValue", "setFloor", "getXValue", "getYValue", "getZValue", "getFloorYValue" };
         }
 
-        public static String[] METHODS = { "move_by", "goto_floor", "find", "has" };
+        @Override
+        public MethodResult callMethod(IComputerAccess iComputerAccess, ILuaContext iLuaContext, int method, IArguments iArguments) throws LuaException {
+            switch (method) {
+                case 0:
+                    return MethodResult.of(provider.moveBy(iArguments.getString(0), iArguments.getInt(1)));
+                case 1:
+                case 5:
+                    return MethodResult.of(provider.goTo(iArguments.getInt(0)));
+                case 2:
+                    return MethodResult.of(Arrays.toString(provider.find()));
+                case 3:
+                    return MethodResult.of(provider.has());
+                case 4:
+                    return MethodResult.of(provider.isReady());
+                case 6:
+                    return MethodResult.of(provider.moveBy("x", iArguments.getInt(0)));
+                case 7:
+                    return MethodResult.of(provider.moveBy("y", iArguments.getInt(0)));
+                case 8:
+                    return MethodResult.of(provider.moveBy("Z", iArguments.getInt(0)));
+                case 9:
+                    return MethodResult.of(provider.setFloor(iArguments.getInt(0)));
+                case 10:
+                    return MethodResult.of(provider.getCoord("x"));
+                case 11:
+                    return MethodResult.of(provider.getCoord("y"));
+                case 12:
+                    return MethodResult.of(provider.getCoord("z"));
+                case 13:
+                    return MethodResult.of(provider.getFloorYValue(iArguments.getInt(0)));
+            }
+
+            return null;
+        }
 
         private final Provider provider;
 
