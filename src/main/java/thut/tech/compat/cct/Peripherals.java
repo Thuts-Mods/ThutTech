@@ -1,4 +1,4 @@
-curseforgepackage thut.tech.compat.cct;
+package thut.tech.compat.cct;
 
 import dan200.computercraft.api.ComputerCraftAPI;
 import dan200.computercraft.api.lua.IArguments;
@@ -86,7 +86,7 @@ public class Peripherals
               return this.tile.getLift().getCurrentFloor() == this.tile.getLift().getDestinationFloor();
             }
 
-          public boolean setFloor(int floor) throws LuaException {
+          public boolean setFloor(final int floor) throws LuaException {
               if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
               if(this.tile.floor != floor) {
                     this.tile.floor = floor;
@@ -95,20 +95,14 @@ public class Peripherals
                 return false;
 
           }
-          public double getCoord(String axis) throws LuaException {
+          public double getCoord(final String axis) throws LuaException {
               if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
-              if (axis.equalsIgnoreCase("x")) {
-                  return this.tile.getLift().getPosX();
-              }
-              if (axis.equalsIgnoreCase("y")) {
-                  return this.tile.getLift().getPosY();
-              }
-              if (axis.equalsIgnoreCase("z")) {
-                  return this.tile.getLift().getPosZ();
-              }
+              if (axis.equalsIgnoreCase("x")) return this.tile.getLift().getPosX();
+              if (axis.equalsIgnoreCase("y")) return this.tile.getLift().getPosY();
+              if (axis.equalsIgnoreCase("z")) return this.tile.getLift().getPosZ();
               return -1;
           }
-          public double getFloorYValue(int floor) throws LuaException {
+          public double getFloorYValue(final int floor) throws LuaException {
               if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
               return this.tile.getLift().getFloorPos(floor);
           }
@@ -120,35 +114,35 @@ public class Peripherals
         }
 
         @Override
-        public MethodResult callMethod(IComputerAccess iComputerAccess, ILuaContext iLuaContext, int method, IArguments iArguments) throws LuaException {
+        public MethodResult callMethod(final IComputerAccess iComputerAccess, final ILuaContext iLuaContext, final int method, final IArguments iArguments) throws LuaException {
             switch (method) {
                 case 0:
-                    return MethodResult.of(provider.moveBy(iArguments.getString(0), iArguments.getInt(1)));
+                    return MethodResult.of(this.provider.moveBy(iArguments.getString(0), iArguments.getInt(1)));
                 case 1:
                 case 5:
-                    return MethodResult.of(provider.goTo(iArguments.getInt(0)));
+                    return MethodResult.of(this.provider.goTo(iArguments.getInt(0)));
                 case 2:
-                    return MethodResult.of(Arrays.toString(provider.find()));
+                    return MethodResult.of(Arrays.toString(this.provider.find()));
                 case 3:
-                    return MethodResult.of(provider.has());
+                    return MethodResult.of(this.provider.has());
                 case 4:
-                    return MethodResult.of(provider.isReady());
+                    return MethodResult.of(this.provider.isReady());
                 case 6:
-                    return MethodResult.of(provider.moveBy("x", iArguments.getInt(0)));
+                    return MethodResult.of(this.provider.moveBy("x", iArguments.getInt(0)));
                 case 7:
-                    return MethodResult.of(provider.moveBy("y", iArguments.getInt(0)));
+                    return MethodResult.of(this.provider.moveBy("y", iArguments.getInt(0)));
                 case 8:
-                    return MethodResult.of(provider.moveBy("Z", iArguments.getInt(0)));
+                    return MethodResult.of(this.provider.moveBy("Z", iArguments.getInt(0)));
                 case 9:
-                    return MethodResult.of(provider.setFloor(iArguments.getInt(0)));
+                    return MethodResult.of(this.provider.setFloor(iArguments.getInt(0)));
                 case 10:
-                    return MethodResult.of(provider.getCoord("x"));
+                    return MethodResult.of(this.provider.getCoord("x"));
                 case 11:
-                    return MethodResult.of(provider.getCoord("y"));
+                    return MethodResult.of(this.provider.getCoord("y"));
                 case 12:
-                    return MethodResult.of(provider.getCoord("z"));
+                    return MethodResult.of(this.provider.getCoord("z"));
                 case 13:
-                    return MethodResult.of(provider.getFloorYValue(iArguments.getInt(0)));
+                    return MethodResult.of(this.provider.getFloorYValue(iArguments.getInt(0)));
             }
 
             return null;
