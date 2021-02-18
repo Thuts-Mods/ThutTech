@@ -39,12 +39,10 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
     public ActionResultType processInitialInteract(final PlayerEntity player, @Nullable ItemStack stack,
             final Hand hand)
     {
-
         final boolean isElevatorItemOrStick = stack.getItem() == Items.STICK || stack.getItem() == TechCore.LIFT.get();
         final boolean isLinker = stack.getItem() == TechCore.LINKER.get();
 
-        final boolean canEdit = this.lift.owner != null && player.getUniqueID().equals(this.lift.owner)
-                || player.abilities.isCreativeMode;
+        final boolean canEdit = player.getUniqueID().equals(this.lift.owner) || player.abilities.isCreativeMode;
 
         final boolean shouldLinkLift = player.isSneaking() && isLinker && canEdit;
         final boolean shouldKillLiftUnowned = this.lift.owner == null;

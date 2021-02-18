@@ -80,24 +80,16 @@ public class ItemLinker extends Item
                     return ActionResultType.SUCCESS;
                 }
             }
-            else if (playerIn.isSneaking() && state.getBlock() == TechCore.LIFTCONTROLLER.get())
+            else if (playerIn.isSneaking() && state.getBlock() == TechCore.LIFTCONTROLLER.get() && face != Direction.UP
+                    && face != Direction.DOWN)
             {
-                if (face != Direction.UP && face != Direction.DOWN)
-                {
-                    final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
-                    te.editFace[face.ordinal()] = !te.editFace[face.ordinal()];
-                    te.setSidePage(face, 0);
-                    final String message = "msg.editMode";
-                    if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message, te.editFace[face
-                            .ordinal()]), Util.DUMMY_UUID);
-                    return ActionResultType.SUCCESS;
-                }
-            }
-            else if (playerIn.isSneaking())
-            {
-                stack.setTag(new CompoundNBT());
-                final String message = "msg.linker.reset";
-                if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message), Util.DUMMY_UUID);
+                final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
+                te.editFace[face.ordinal()] = !te.editFace[face.ordinal()];
+                te.setSidePage(face, 0);
+                final String message = "msg.editMode";
+                if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message, te.editFace[face
+                        .ordinal()]), Util.DUMMY_UUID);
+                return ActionResultType.SUCCESS;
             }
         }
         return ActionResultType.PASS;
