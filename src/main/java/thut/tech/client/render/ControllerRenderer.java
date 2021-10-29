@@ -3,34 +3,32 @@ package thut.tech.client.render;
 import java.awt.Color;
 import java.util.Random;
 
-import org.lwjgl.opengl.GL11;
-
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.IVertexBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import com.mojang.math.Matrix4f;
+import com.mojang.math.Vector3f;
 
-import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.renderer.BlockRendererDispatcher;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.RenderState;
-import net.minecraft.client.renderer.RenderState.AlphaState;
-import net.minecraft.client.renderer.RenderState.TextureState;
-import net.minecraft.client.renderer.RenderState.TransparencyState;
-import net.minecraft.client.renderer.RenderState.WriteMaskState;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderStateShard;
+import net.minecraft.client.renderer.RenderStateShard.TextureStateShard;
+import net.minecraft.client.renderer.RenderStateShard.TransparencyStateShard;
+import net.minecraft.client.renderer.RenderStateShard.WriteMaskStateShard;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.RenderTypeLookup;
-import net.minecraft.client.renderer.model.IBakedModel;
-import net.minecraft.client.renderer.tileentity.TileEntityRenderer;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Matrix4f;
-import net.minecraft.util.math.vector.Vector3f;
-import net.minecraft.world.World;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.client.model.data.EmptyModelData;
 import net.minecraftforge.client.model.data.IModelData;
 import thut.api.entity.blockentity.world.IBlockEntityWorld;
@@ -38,7 +36,7 @@ import thut.tech.common.TechCore;
 import thut.tech.common.blocks.lift.ControllerTile;
 import thut.tech.common.entity.EntityLift;
 
-public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
+public class ControllerRenderer implements BlockEntityRenderer<ControllerTile>
 {
 
     private static final ResourceLocation overlay   = new ResourceLocation("thuttech:textures/blocks/overlay.png");
@@ -51,48 +49,49 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
     private static final ResourceLocation exit   = new ResourceLocation("thuttech:textures/blocks/overlay_exit.png");
     private static final ResourceLocation unlink = new ResourceLocation("thuttech:textures/blocks/overlay_unlink.png");
 
-    private static void render(final RenderType type, final MatrixStack mat, final IRenderTypeBuffer buff,
-            final float x1, final float y1, final float x2, final float y2, final float r, final float g, final float b,
-            final float a, final float[] uvs)
+    private static void render(final RenderType type, final PoseStack mat, final MultiBufferSource buff, final float x1,
+            final float y1, final float x2, final float y2, final float r, final float g, final float b, final float a,
+            final float[] uvs)
     {
         ControllerRenderer.render(type, mat, buff, x1, y1, x2, y2, r, g, b, a, uvs[0], uvs[1], uvs[2], uvs[3]);
     }
 
-    private static void render(final RenderType type, final MatrixStack mat, final IRenderTypeBuffer buff,
-            final float x1, final float y1, final float x2, final float y2, final float r, final float g, final float b,
-            final float a, final float u1, final float u2, final float v1, final float v2)
+    private static void render(final RenderType type, final PoseStack mat, final MultiBufferSource buff, final float x1,
+            final float y1, final float x2, final float y2, final float r, final float g, final float b, final float a,
+            final float u1, final float u2, final float v1, final float v2)
     {
-        final IVertexBuilder buffer = buff.getBuffer(type);
-        final Matrix4f o = mat.getLast().getMatrix();
-        buffer.pos(o, x2, y2, 0).color(r, g, b, a).tex(u1, v1).endVertex();
-        buffer.pos(o, x2, y1, 0).color(r, g, b, a).tex(u1, v2).endVertex();
-        buffer.pos(o, x1, y1, 0).color(r, g, b, a).tex(u2, v2).endVertex();
-        buffer.pos(o, x1, y2, 0).color(r, g, b, a).tex(u2, v1).endVertex();
+        final VertexConsumer buffer = buff.getBuffer(type);
+        final Matrix4f o = mat.last().pose();
+        buffer.vertex(o, x2, y2, 0).color(r, g, b, a).uv(u1, v1).endVertex();
+        buffer.vertex(o, x2, y1, 0).color(r, g, b, a).uv(u1, v2).endVertex();
+        buffer.vertex(o, x1, y1, 0).color(r, g, b, a).uv(u2, v2).endVertex();
+        buffer.vertex(o, x1, y2, 0).color(r, g, b, a).uv(u2, v1).endVertex();
     }
 
-    private static final TransparencyState TRANSP = new RenderState.TransparencyState("translucent_transparency", () ->
-    {
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-    }, () ->
-    {
-        RenderSystem.disableBlend();
-    });
+    private static final TransparencyStateShard TRANSP = new RenderStateShard.TransparencyStateShard(
+            "translucent_transparency", () ->
+            {
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+            }, () ->
+            {
+                RenderSystem.disableBlend();
+            });
 
-    private static final AlphaState     ALPHA = new RenderState.AlphaState(0.003921569F);
-    private static final WriteMaskState MASK  = new RenderState.WriteMaskState(true, true);
+    private static final WriteMaskStateShard MASK = new RenderStateShard.WriteMaskStateShard(true, true);
 
-    private static RenderType.State getState(final ResourceLocation texture)
+    private static RenderType.CompositeState getState(final ResourceLocation texture)
     {
-        return RenderType.State.getBuilder().texture(new TextureState(texture, false, true)).transparency(
-                ControllerRenderer.TRANSP).writeMask(ControllerRenderer.MASK).alpha(ControllerRenderer.ALPHA).build(
-                        false);
+        return RenderType.CompositeState.builder().setShaderState(RenderStateShard.POSITION_COLOR_TEX_SHADER)
+                .setTextureState(new TextureStateShard(texture, false, true)).setTransparencyState(
+                        ControllerRenderer.TRANSP).setWriteMaskState(ControllerRenderer.MASK).createCompositeState(
+                                false);
     }
 
     public static RenderType makeType(final ResourceLocation tex)
     {
-        return RenderType.makeType(tex.toString(), DefaultVertexFormats.POSITION_COLOR_TEX, GL11.GL_QUADS, 256, false,
-                true, ControllerRenderer.getState(tex));
+        return RenderType.create(tex.toString(), DefaultVertexFormat.POSITION_COLOR_TEX, Mode.QUADS, 256, false, true,
+                ControllerRenderer.getState(tex));
     }
 
     private static RenderType       NUMBERS   = ControllerRenderer.makeType(ControllerRenderer.font);
@@ -106,12 +105,11 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
     private static final RenderType EXIT   = ControllerRenderer.makeType(ControllerRenderer.exit);
     private static final RenderType UNLINK = ControllerRenderer.makeType(ControllerRenderer.unlink);
 
-    public ControllerRenderer(final TileEntityRendererDispatcher rendererDispatcherIn)
+    public ControllerRenderer(final BlockEntityRendererProvider.Context dispatcher)
     {
-        super(rendererDispatcherIn);
     }
 
-    public void drawEditOverlay(final MatrixStack mat, final IRenderTypeBuffer buff, final ControllerTile monitor,
+    public void drawEditOverlay(final PoseStack mat, final MultiBufferSource buff, final ControllerTile monitor,
             final Direction side)
     {
         Color colour;
@@ -132,21 +130,21 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
         this.drawOverLay(mat, buff, monitor, 16, colour, side, 0, 0, ControllerRenderer.EXIT);
     }
 
-    public void drawFloorNumbers(final MatrixStack mat, final IRenderTypeBuffer buffer, final int page)
+    public void drawFloorNumbers(final PoseStack mat, final MultiBufferSource buffer, final int page)
     {
         for (int floor = 1; floor <= 16; floor++)
             this.drawNumber(mat, buffer, floor + page * 16, floor);
     }
 
-    private void drawNumber(final MatrixStack mat, final IRenderTypeBuffer buffer, final int number, final int floor)
+    private void drawNumber(final PoseStack mat, final MultiBufferSource buffer, final int number, final int floor)
     {
         this.drawNumber(mat, buffer, number, floor, false);
     }
 
-    private void drawNumber(final MatrixStack mat, final IRenderTypeBuffer buffer, int number, int floor,
+    private void drawNumber(final PoseStack mat, final MultiBufferSource buffer, int number, int floor,
             final boolean wide)
     {
-        mat.push();
+        mat.pushPose();
         floor--;
         final float dz = -0.006f;
         final boolean minus = number >= 64;
@@ -193,16 +191,16 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
                         b, a, uvs);
             }
         }
-        mat.pop();
+        mat.popPose();
     }
 
-    public void drawOverLay(final MatrixStack mat, final IRenderTypeBuffer buffer, final ControllerTile monitor,
+    public void drawOverLay(final PoseStack mat, final MultiBufferSource buffer, final ControllerTile monitor,
             int floor, final Color colour, final Direction side, final int order, final float shift,
             final RenderType type)
     {
         if (floor > 0 && floor < 17)
         {
-            mat.push();
+            mat.pushPose();
             final float dz = -0.001f * (1 + order);
             floor -= 1;
             final double x = (double) (3 - floor & 3) / (double) 4, y = ((double) 3 - (floor >> 2)) / 4;
@@ -212,11 +210,11 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
             final float a = colour.getAlpha() / 255f;
             mat.translate(x, y, dz);
             ControllerRenderer.render(type, mat, buffer, 0, 0, 0.25f + shift, 0.25f, r, g, b, a, 0, 1, 0, 1);
-            mat.pop();
+            mat.popPose();
         }
     }
 
-    public void drawOverLay(final MatrixStack mat, final IRenderTypeBuffer buffer, final ControllerTile monitor,
+    public void drawOverLay(final PoseStack mat, final MultiBufferSource buffer, final ControllerTile monitor,
             int floor, final Color colour, final Direction side, final boolean wide, final int order)
     {
         if (!wide) floor = floor - monitor.getSidePage(side) * 16;
@@ -243,16 +241,16 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
     }
 
     @Override
-    public void render(final ControllerTile tileentity, final float partialTicks, final MatrixStack mat,
-            final IRenderTypeBuffer buff, final int combinedLightIn, final int combinedOverlayIn)
+    public void render(final ControllerTile tileentity, final float partialTicks, final PoseStack mat,
+            final MultiBufferSource buff, final int combinedLightIn, final int combinedOverlayIn)
     {
         final ControllerTile monitor = tileentity;
 
         int calledFloor = 0;
         int currentFloor = 0;
         boolean hasLinker = Screen.hasShiftDown();
-        hasLinker = hasLinker && (Minecraft.getInstance().player.getHeldItemMainhand().getItem() == TechCore.LINKER
-                .get() || Minecraft.getInstance().player.getHeldItemOffhand().getItem() == TechCore.LINKER.get());
+        hasLinker = hasLinker && (Minecraft.getInstance().player.getMainHandItem().getItem() == TechCore.LINKER.get()
+                || Minecraft.getInstance().player.getOffhandItem().getItem() == TechCore.LINKER.get());
 
         final EntityLift lift = monitor.getLift();
         if (lift != null)
@@ -264,9 +262,9 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
         final BlockState copied = monitor.copiedState;
         if (copied != null)
         {
-            mat.push();
-            World world = monitor.getWorld();
-            final BlockPos pos = monitor.getPos();
+            mat.pushPose();
+            Level world = monitor.getLevel();
+            final BlockPos pos = monitor.getBlockPos();
             BlockPos randPos = pos;
             if (world instanceof IBlockEntityWorld)
             {
@@ -274,29 +272,29 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
                 world = w.getWorld();
                 randPos = BlockPos.ZERO;
             }
-            final IModelData data = Minecraft.getInstance().getBlockRendererDispatcher().getModelForState(copied)
-                    .getModelData(world, pos, copied, EmptyModelData.INSTANCE);
-            for (final RenderType type : RenderType.getBlockRenderTypes())
-                if (RenderTypeLookup.canRenderInLayer(copied, type))
+            final IModelData data = Minecraft.getInstance().getBlockRenderer().getBlockModel(copied).getModelData(world,
+                    pos, copied, EmptyModelData.INSTANCE);
+            for (final RenderType type : RenderType.chunkBufferLayers())
+                if (ItemBlockRenderTypes.canRenderInLayer(copied, type))
                 {
-                    final BlockRendererDispatcher blockRenderer = Minecraft.getInstance().getBlockRendererDispatcher();
-                    final IBakedModel model = blockRenderer.getModelForState(copied);
-                    blockRenderer.getBlockModelRenderer().renderModel(world, model, copied, pos, mat, buff.getBuffer(
-                            type), false, new Random(), copied.getPositionRandom(randPos), combinedOverlayIn, data);
+                    final BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
+                    final BakedModel model = blockRenderer.getBlockModel(copied);
+                    blockRenderer.getModelRenderer().tesselateBlock(world, model, copied, pos, mat, buff.getBuffer(
+                            type), false, new Random(), copied.getSeed(randPos), combinedOverlayIn, data);
                 }
-            mat.pop();
+            mat.popPose();
         }
 
         dirs:
         for (int i = 0; i < 6; i++)
         {
-            final Direction dir = Direction.byIndex(i);
+            final Direction dir = Direction.from3DDataValue(i);
 
             if (!monitor.isSideOn(dir)) continue;
-            mat.push();
-            final float f = dir.getHorizontalAngle();
+            mat.pushPose();
+            final float f = dir.toYRot();
             mat.translate(0.5D, 0.5D, 0.5D);
-            mat.rotate(Vector3f.YN.rotationDegrees(f + 180));
+            mat.mulPose(Vector3f.YN.rotationDegrees(f + 180));
             mat.translate(-0.5D, -0.5D, -0.5D);
 
             int a = 64;
@@ -308,10 +306,10 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
                 mat.translate(-0.5, -0.095, 0);
                 this.drawOverLay(mat, buff, monitor, 1, colour, dir, true, 0);
 
-                mat.push();
+                mat.pushPose();
                 mat.translate(0.4, 0.0, 0);
                 this.drawNumber(mat, buff, currentFloor, 1, true);
-                mat.pop();
+                mat.popPose();
             }
             else if (monitor.isCallPanel(dir))
             {
@@ -333,10 +331,10 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
                     this.drawOverLay(mat, buff, monitor, 1, colour, dir, true, 2);
                 }
 
-                mat.push();
+                mat.pushPose();
                 mat.translate(0.4, 0.0, 0);
                 this.drawNumber(mat, buff, monitor.floor, 1, true);
-                mat.pop();
+                mat.popPose();
             }
             else
             {
@@ -352,7 +350,7 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
                     for (int j = pageShift + 1; j <= 16 + pageShift; j++)
                         this.drawOverLay(mat, buff, monitor, j, colour, dir, false, 0);
                     this.drawFloorNumbers(mat, buff, page);
-                    mat.pop();
+                    mat.popPose();
                     continue dirs;
                 }
 
@@ -384,7 +382,7 @@ public class ControllerRenderer extends TileEntityRenderer<ControllerTile>
                 this.drawOverLay(mat, buff, monitor, monitor.getLift().getCurrentFloor(), colour, dir, false, 0);
 
             }
-            mat.pop();
+            mat.popPose();
         }
     }
 }

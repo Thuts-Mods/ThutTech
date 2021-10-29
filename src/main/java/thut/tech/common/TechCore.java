@@ -1,20 +1,19 @@
 package thut.tech.common;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.entity.EntityType;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.material.Material;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fmllegacy.RegistryObject;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
-import thut.api.entity.blockentity.BlockEntityBase.BlockEntityType;
 import thut.core.common.ThutCore;
 import thut.core.common.config.Config;
 import thut.core.common.network.PacketHandler;
@@ -32,10 +31,10 @@ public class TechCore
     public final static PacketHandler packets = new PacketHandler(new ResourceLocation(Reference.MOD_ID, "comms"),
             Reference.NETVERSION);
 
-    public static final DeferredRegister<Item>              ITEMS;
-    public static final DeferredRegister<Block>             BLOCKS;
-    public static final DeferredRegister<EntityType<?>>     ENTITY;
-    public static final DeferredRegister<TileEntityType<?>> TILEENTITY;
+    public static final DeferredRegister<Item>               ITEMS;
+    public static final DeferredRegister<Block>              BLOCKS;
+    public static final DeferredRegister<EntityType<?>>      ENTITY;
+    public static final DeferredRegister<BlockEntityType<?>> TILEENTITY;
 
     public static final RegistryObject<Block> LIFTCONTROLLER;
 
@@ -44,30 +43,29 @@ public class TechCore
 
     public static final RegistryObject<EntityType<EntityLift>> LIFTTYPE;
 
-    public static final RegistryObject<TileEntityType<ControllerTile>> CONTROLTYPE;
+    public static final RegistryObject<BlockEntityType<ControllerTile>> CONTROLTYPE;
 
     public static final ConfigHandler config = new ConfigHandler(Reference.MOD_ID);
 
     static
     {
-        TILEENTITY = DeferredRegister.create(ForgeRegistries.TILE_ENTITIES, Reference.MOD_ID);
+        TILEENTITY = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITIES, Reference.MOD_ID);
         ENTITY = DeferredRegister.create(ForgeRegistries.ENTITIES, Reference.MOD_ID);
         BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, Reference.MOD_ID);
         ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, Reference.MOD_ID);
 
-        LIFTTYPE = TechCore.ENTITY.register("lift", () -> new BlockEntityType<>(EntityLift::new));
+        LIFTTYPE = TechCore.ENTITY.register("lift", () -> new EntityLift.BlockEntityType<>(EntityLift::new));
 
-        CONTROLTYPE = TechCore.TILEENTITY.register("controller", () -> TileEntityType.Builder.create(
-                ControllerTile::new, TechCore.LIFTCONTROLLER.get()).build(null));
-        LIFTCONTROLLER = TechCore.BLOCKS.register("controller", () -> new ControllerBlock(Block.Properties.create(
-                Material.IRON).hardnessAndResistance(3.5f).variableOpacity().notSolid()));
+        CONTROLTYPE = TechCore.TILEENTITY.register("controller", () -> BlockEntityType.Builder.of(ControllerTile::new,
+                TechCore.LIFTCONTROLLER.get()).build(null));
+        LIFTCONTROLLER = TechCore.BLOCKS.register("controller", () -> new ControllerBlock(Block.Properties.of(
+                Material.METAL).strength(3.5f).dynamicShape().noOcclusion()));
 
-        LIFT = TechCore.ITEMS.register("lift", () -> new Item(new Item.Properties().group(ThutCore.THUTITEMS)));
-        LINKER = TechCore.ITEMS.register("linker", () -> new ItemLinker(new Item.Properties().group(
-                ThutCore.THUTITEMS)));
+        LIFT = TechCore.ITEMS.register("lift", () -> new Item(new Item.Properties().tab(ThutCore.THUTITEMS)));
+        LINKER = TechCore.ITEMS.register("linker", () -> new ItemLinker(new Item.Properties().tab(ThutCore.THUTITEMS)));
 
         for (final RegistryObject<Block> reg : TechCore.BLOCKS.getEntries())
-            TechCore.ITEMS.register(reg.getId().getPath(), () -> new BlockItem(reg.get(), new Item.Properties().group(
+            TechCore.ITEMS.register(reg.getId().getPath(), () -> new BlockItem(reg.get(), new Item.Properties().tab(
                     ThutCore.THUTITEMS)));
     }
 

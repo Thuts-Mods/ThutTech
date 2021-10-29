@@ -1,15 +1,15 @@
 package thut.tech.common.items;
 
-import net.minecraft.inventory.CraftingInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.item.crafting.SpecialRecipe;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.World;
+import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.CustomRecipe;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
 import thut.tech.common.TechCore;
 import thut.tech.common.util.RecipeSerializers;
 
-public class RecipeReset extends SpecialRecipe
+public class RecipeReset extends CustomRecipe
 {
     public RecipeReset(final ResourceLocation idIn)
     {
@@ -17,16 +17,16 @@ public class RecipeReset extends SpecialRecipe
     }
 
     @Override
-    public ItemStack getCraftingResult(final CraftingInventory inv)
+    public ItemStack assemble(final CraftingContainer inv)
     {
         int n = 0;
         boolean matched = false;
 
         // Try to match a device linker
         ItemStack linker = ItemStack.EMPTY;
-        for (int i = 0; i < inv.getSizeInventory(); i++)
+        for (int i = 0; i < inv.getContainerSize(); i++)
         {
-            final ItemStack stack = inv.getStackInSlot(i);
+            final ItemStack stack = inv.getItem(i);
             if (stack.isEmpty()) continue;
             link:
             if (stack.getItem() == TechCore.LINKER.get())
@@ -49,9 +49,9 @@ public class RecipeReset extends SpecialRecipe
         // Try to match an elevator item
         n = 0;
         linker = ItemStack.EMPTY;
-        for (int i = 0; i < inv.getSizeInventory(); i++)
+        for (int i = 0; i < inv.getContainerSize(); i++)
         {
-            final ItemStack stack = inv.getStackInSlot(i);
+            final ItemStack stack = inv.getItem(i);
             if (stack.isEmpty()) continue;
             link:
             if (stack.getItem() == TechCore.LIFT.get())
@@ -76,19 +76,19 @@ public class RecipeReset extends SpecialRecipe
     }
 
     @Override
-    public IRecipeSerializer<?> getSerializer()
+    public RecipeSerializer<?> getSerializer()
     {
         return RecipeSerializers.RECIPE_RESET_SERIALIZER.get();
     }
 
     @Override
-    public boolean matches(final CraftingInventory inv, final World worldIn)
+    public boolean matches(final CraftingContainer inv, final Level worldIn)
     {
-        return !this.getCraftingResult(inv).isEmpty();
+        return !this.assemble(inv).isEmpty();
     }
 
     @Override
-    public boolean canFit(final int width, final int height)
+    public boolean canCraftInDimensions(final int width, final int height)
     {
         return width * height > 0;
     }

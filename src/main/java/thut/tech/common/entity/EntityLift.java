@@ -5,20 +5,20 @@ import java.util.UUID;
 
 import com.google.common.collect.Maps;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntitySize;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.Pose;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
@@ -38,42 +38,42 @@ public class EntityLift extends BlockEntityBase
         protected static final Map<UUID, EntityLift> liftMap = Maps.newHashMap();
     }
 
-    static final DataParameter<Integer> DESTINATIONFLOORDW;
-    static final DataParameter<Float>   DESTINATIONYDW;
-    static final DataParameter<Float>   DESTINATIONXDW;
-    static final DataParameter<Float>   DESTINATIONZDW;
-    static final DataParameter<Integer> CURRENTFLOORDW;
-    static final DataParameter<Boolean> CALLEDDW;
+    static final EntityDataAccessor<Integer> DESTINATIONFLOORDW;
+    static final EntityDataAccessor<Float>   DESTINATIONYDW;
+    static final EntityDataAccessor<Float>   DESTINATIONXDW;
+    static final EntityDataAccessor<Float>   DESTINATIONZDW;
+    static final EntityDataAccessor<Integer> CURRENTFLOORDW;
+    static final EntityDataAccessor<Boolean> CALLEDDW;
 
-    static final DataParameter<Float> SPEEDUP;
-    static final DataParameter<Float> SPEEDDOWN;
-    static final DataParameter<Float> SPEEDSIDE;
-    static final DataParameter<Float> ACCEL;
+    static final EntityDataAccessor<Float> SPEEDUP;
+    static final EntityDataAccessor<Float> SPEEDDOWN;
+    static final EntityDataAccessor<Float> SPEEDSIDE;
+    static final EntityDataAccessor<Float> ACCEL;
 
     static
     {
-        DESTINATIONFLOORDW = EntityDataManager.<Integer> createKey(EntityLift.class, DataSerializers.VARINT);
-        DESTINATIONYDW = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
-        DESTINATIONXDW = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
-        DESTINATIONZDW = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
-        CURRENTFLOORDW = EntityDataManager.<Integer> createKey(EntityLift.class, DataSerializers.VARINT);
-        CALLEDDW = EntityDataManager.<Boolean> createKey(EntityLift.class, DataSerializers.BOOLEAN);
+        DESTINATIONFLOORDW = SynchedEntityData.<Integer> defineId(EntityLift.class, EntityDataSerializers.INT);
+        DESTINATIONYDW = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        DESTINATIONXDW = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        DESTINATIONZDW = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        CURRENTFLOORDW = SynchedEntityData.<Integer> defineId(EntityLift.class, EntityDataSerializers.INT);
+        CALLEDDW = SynchedEntityData.<Boolean> defineId(EntityLift.class, EntityDataSerializers.BOOLEAN);
 
-        SPEEDUP = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
-        SPEEDDOWN = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
-        SPEEDSIDE = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
-        ACCEL = EntityDataManager.<Float> createKey(EntityLift.class, DataSerializers.FLOAT);
+        SPEEDUP = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        SPEEDDOWN = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        SPEEDSIDE = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        ACCEL = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
     }
 
     public static boolean ENERGYUSE = false;
 
     public static int ENERGYCOST = 100;
 
-    public static EntityLift getLiftFromUUID(final UUID liftID, final World world)
+    public static EntityLift getLiftFromUUID(final UUID liftID, final Level world)
     {
-        if (world instanceof ServerWorld)
+        if (world instanceof ServerLevel)
         {
-            final Entity e = ((ServerWorld) world).getEntityByUuid(liftID);
+            final Entity e = ((ServerLevel) world).getEntity(liftID);
             if (e instanceof EntityLift) return (EntityLift) e;
         }
         return LiftTracker.liftMap.get(liftID);
@@ -89,11 +89,11 @@ public class EntityLift extends BlockEntityBase
 
     private final Vector3f velocity = new Vector3f();
 
-    private Vector3d motion = new Vector3d(0, 0, 0);
+    private Vec3 motion = new Vec3(0, 0, 0);
 
-    EntitySize size;
+    EntityDimensions size;
 
-    public EntityLift(final EntityType<EntityLift> type, final World par1World)
+    public EntityLift(final EntityType<EntityLift> type, final Level par1World)
     {
         super(type, par1World);
     }
@@ -103,20 +103,20 @@ public class EntityLift extends BlockEntityBase
     {
         // These elevators shouldn't be able to rotate, set this here incase
         // someone else has tried to rotate it.
-        this.rotationYaw = 0;
+        this.setYRot(0);
         // Only should run the consume power check on servers.
         if (this.isServerWorld() && !this.consumePower())
         {
             this.toMoveY = this.toMoveX = this.toMoveZ = false;
-            this.setDestX((float) this.getPosX());
+            this.setDestX((float) this.getX());
             this.setCalled(false);
         }
         else
         {
             // Otherwise set it to move if it has a destination.
-            this.toMoveX = this.getDestX() != this.getPosX();
-            this.toMoveY = this.getDestY() != this.getPosY();
-            this.toMoveZ = this.getDestZ() != this.getPosZ();
+            this.toMoveX = this.getDestX() != this.getX();
+            this.toMoveY = this.getDestY() != this.getY();
+            this.toMoveZ = this.getDestZ() != this.getZ();
         }
         if (!(this.toMoveX || this.toMoveY || this.toMoveZ)) this.setCalled(false);
 
@@ -136,62 +136,62 @@ public class EntityLift extends BlockEntityBase
                 final float destY = this.getDestY();
                 // If Sufficiently close (0,01 blocks) just snap the elevator to
                 // the destination.
-                if (Math.abs(destY - this.getPosY()) < 0.01)
+                if (Math.abs(destY - this.getY()) < 0.01)
                 {
-                    this.setPosition(this.getPosX(), destY, this.getPosZ());
+                    this.setPos(this.getX(), destY, this.getZ());
                     this.toMoveY = false;
                     this.velocity.y = 0;
                 }
                 else
                 {
                     // Otherwise accelerate accordingly.
-                    final double dy = this.getSpeed(this.getPosY(), destY, this.velocity.y, speedUp, speedDown);
+                    final double dy = this.getSpeed(this.getY(), destY, this.velocity.y, speedUp, speedDown);
                     this.velocity.y = (float) dy;
                 }
             }
             if (this.toMoveX)
             {
                 final float destX = this.getDestX();
-                if (Math.abs(destX - this.getPosX()) < 0.01)
+                if (Math.abs(destX - this.getX()) < 0.01)
                 {
-                    this.setPosition(destX, this.getPosY(), this.getPosZ());
+                    this.setPos(destX, this.getY(), this.getZ());
                     this.toMoveX = false;
                     this.velocity.x = 0;
                 }
                 else
                 {
-                    final double dx = this.getSpeed(this.getPosX(), destX, this.velocity.x, speedHoriz, speedHoriz);
+                    final double dx = this.getSpeed(this.getX(), destX, this.velocity.x, speedHoriz, speedHoriz);
                     this.velocity.x = (float) dx;
                 }
             }
             if (this.toMoveZ)
             {
                 final float destZ = this.getDestZ();
-                if (Math.abs(destZ - this.getPosZ()) < 0.01)
+                if (Math.abs(destZ - this.getZ()) < 0.01)
                 {
-                    this.setPosition(this.getPosX(), this.getPosY(), destZ);
+                    this.setPos(this.getX(), this.getY(), destZ);
                     this.toMoveZ = false;
                     this.velocity.z = 0;
                 }
                 else
                 {
-                    final double dz = this.getSpeed(this.getPosZ(), destZ, this.velocity.z, speedHoriz, speedHoriz);
+                    final double dz = this.getSpeed(this.getZ(), destZ, this.velocity.z, speedHoriz, speedHoriz);
                     this.velocity.z = (float) dz;
                 }
             }
         }
-        this.setMotion(this.velocity.x, this.velocity.y, this.velocity.z);
+        this.setDeltaMovement(this.velocity.x, this.velocity.y, this.velocity.z);
 
     }
 
     @Override
-    public Vector3d getMotion()
+    public Vec3 getDeltaMovement()
     {
         return this.motion;
     }
 
     @Override
-    public void setMotion(final Vector3d vec)
+    public void setDeltaMovement(final Vec3 vec)
     {
         this.motion = vec;
     }
@@ -231,7 +231,7 @@ public class EntityLift extends BlockEntityBase
         boolean power = false;
         final Vector3 bounds = Vector3.getNewVector().set(this.boundMax.subtract(this.boundMin));
         final double volume = bounds.x * bounds.y * bounds.z;
-        int energyCost = (int) (Math.abs(this.getDestY() - this.getPosY()) * EntityLift.ENERGYCOST * volume * 0.01);
+        int energyCost = (int) (Math.abs(this.getDestY() - this.getY()) * EntityLift.ENERGYCOST * volume * 0.01);
         energyCost = Math.max(energyCost, 1);
         final int canExtract = this.energy.extractEnergy(energyCost, true);
         if (canExtract == energyCost)
@@ -243,7 +243,7 @@ public class EntityLift extends BlockEntityBase
         if (!power)
         {
             this.setDestinationFloor(-1);
-            this.setDestY((float) this.getPosY());
+            this.setDestY((float) this.getY());
             this.setCalled(false);
             this.toMoveY = false;
         }
@@ -268,67 +268,67 @@ public class EntityLift extends BlockEntityBase
 
     public boolean getCalled()
     {
-        return this.dataManager.get(EntityLift.CALLEDDW);
+        return this.entityData.get(EntityLift.CALLEDDW);
     }
 
     /** @return the destinationFloor */
     public int getCurrentFloor()
     {
-        return this.dataManager.get(EntityLift.CURRENTFLOORDW);
+        return this.entityData.get(EntityLift.CURRENTFLOORDW);
     }
 
     /** @return the destinationFloor */
     public int getDestinationFloor()
     {
-        return this.dataManager.get(EntityLift.DESTINATIONFLOORDW);
+        return this.entityData.get(EntityLift.DESTINATIONFLOORDW);
     }
 
     /** @return the destinationFloor */
     public float getDestX()
     {
-        return this.dataManager.get(EntityLift.DESTINATIONXDW);
+        return this.entityData.get(EntityLift.DESTINATIONXDW);
     }
 
     /** @return the destinationFloor */
     public float getDestY()
     {
-        return this.dataManager.get(EntityLift.DESTINATIONYDW);
+        return this.entityData.get(EntityLift.DESTINATIONYDW);
     }
 
     /** @return the destinationFloor */
     public float getDestZ()
     {
-        return this.dataManager.get(EntityLift.DESTINATIONZDW);
+        return this.entityData.get(EntityLift.DESTINATIONZDW);
     }
 
     @Override
     public float getSpeedUp()
     {
-        return this.dataManager.get(EntityLift.SPEEDUP);
+        return this.entityData.get(EntityLift.SPEEDUP);
     }
 
     @Override
     public float getSpeedDown()
     {
-        return this.dataManager.get(EntityLift.SPEEDDOWN);
+        return this.entityData.get(EntityLift.SPEEDDOWN);
     }
 
     @Override
     public float getSpeedHoriz()
     {
-        return this.dataManager.get(EntityLift.SPEEDSIDE);
+        return this.entityData.get(EntityLift.SPEEDSIDE);
     }
 
     @Override
     public float getAccel()
     {
-        return this.dataManager.get(EntityLift.ACCEL);
+        return this.entityData.get(EntityLift.ACCEL);
     }
 
     @Override
-    public EntitySize getSize(final Pose pose)
+    public EntityDimensions getDimensions(final Pose pose)
     {
-        if (this.size == null) this.size = EntitySize.fixed(1 + this.getMax().getX() - this.getMin().getX(), this
+        if (this.size == null) this.size = EntityDimensions.fixed(1 + this.getMax().getX() - this.getMin().getX(), this
                 .getMax().getY());
         return this.size;
     }
@@ -337,14 +337,14 @@ public class EntityLift extends BlockEntityBase
     public void onAddedToWorld()
     {
         super.onAddedToWorld();
-        LiftTracker.liftMap.put(this.getUniqueID(), this);
+        LiftTracker.liftMap.put(this.getUUID(), this);
     }
 
     @Override
     public void onRemovedFromWorld()
     {
         super.onRemovedFromWorld();
-        LiftTracker.liftMap.remove(this.getUniqueID(), this);
+        LiftTracker.liftMap.remove(this.getUUID(), this);
     }
 
     @Override
@@ -359,10 +359,10 @@ public class EntityLift extends BlockEntityBase
     }
 
     @Override
-    public void readAdditional(final CompoundNBT arg0)
+    public void readAdditionalSaveData(final CompoundTag arg0)
     {
-        super.readAdditional(arg0);
-        final CompoundNBT tag = arg0.getCompound("floors");
+        super.readAdditionalSaveData(arg0);
+        final CompoundTag tag = arg0.getCompound("floors");
         for (int i = 0; i < this.hasFloors.length; i++)
             if (tag.contains("" + i))
             {
@@ -371,29 +371,29 @@ public class EntityLift extends BlockEntityBase
                 this.hasFloors[i] = num;
                 this.floors[i] = floor;
             }
-        if (arg0.hasUniqueId("owner")) this.owner = arg0.getUniqueId("owner");
+        if (arg0.hasUUID("owner")) this.owner = arg0.getUUID("owner");
     }
 
     @Override
-    protected void registerData()
+    protected void defineSynchedData()
     {
-        super.registerData();
-        this.dataManager.register(EntityLift.DESTINATIONFLOORDW, Integer.valueOf(0));
-        this.dataManager.register(EntityLift.DESTINATIONYDW, Float.valueOf(0));
-        this.dataManager.register(EntityLift.DESTINATIONXDW, Float.valueOf(0));
-        this.dataManager.register(EntityLift.DESTINATIONZDW, Float.valueOf(0));
-        this.dataManager.register(EntityLift.CURRENTFLOORDW, Integer.valueOf(-1));
-        this.dataManager.register(EntityLift.CALLEDDW, Boolean.FALSE);
+        super.defineSynchedData();
+        this.entityData.define(EntityLift.DESTINATIONFLOORDW, Integer.valueOf(0));
+        this.entityData.define(EntityLift.DESTINATIONYDW, Float.valueOf(0));
+        this.entityData.define(EntityLift.DESTINATIONXDW, Float.valueOf(0));
+        this.entityData.define(EntityLift.DESTINATIONZDW, Float.valueOf(0));
+        this.entityData.define(EntityLift.CURRENTFLOORDW, Integer.valueOf(-1));
+        this.entityData.define(EntityLift.CALLEDDW, Boolean.FALSE);
 
-        this.dataManager.register(EntityLift.SPEEDUP, Float.valueOf((float) TechCore.config.LiftSpeedUp));
-        this.dataManager.register(EntityLift.SPEEDDOWN, Float.valueOf((float) TechCore.config.LiftSpeedDown));
-        this.dataManager.register(EntityLift.SPEEDSIDE, Float.valueOf((float) TechCore.config.LiftSpeedSideways));
-        this.dataManager.register(EntityLift.ACCEL, Float.valueOf((float) TechCore.config.LiftAcceleration));
+        this.entityData.define(EntityLift.SPEEDUP, Float.valueOf((float) TechCore.config.LiftSpeedUp));
+        this.entityData.define(EntityLift.SPEEDDOWN, Float.valueOf((float) TechCore.config.LiftSpeedDown));
+        this.entityData.define(EntityLift.SPEEDSIDE, Float.valueOf((float) TechCore.config.LiftSpeedSideways));
+        this.entityData.define(EntityLift.ACCEL, Float.valueOf((float) TechCore.config.LiftAcceleration));
     }
 
     private void setCalled(final boolean called)
     {
-        this.dataManager.set(EntityLift.CALLEDDW, called);
+        this.entityData.set(EntityLift.CALLEDDW, called);
     }
 
     /**
@@ -402,7 +402,7 @@ public class EntityLift extends BlockEntityBase
      */
     public void setCurrentFloor(final int currentFloor)
     {
-        this.dataManager.set(EntityLift.CURRENTFLOORDW, Integer.valueOf(currentFloor));
+        this.entityData.set(EntityLift.CURRENTFLOORDW, Integer.valueOf(currentFloor));
     }
 
     /**
@@ -411,7 +411,7 @@ public class EntityLift extends BlockEntityBase
      */
     public void setDestinationFloor(final int destinationFloor)
     {
-        this.dataManager.set(EntityLift.DESTINATIONFLOORDW, Integer.valueOf(destinationFloor));
+        this.entityData.set(EntityLift.DESTINATIONFLOORDW, Integer.valueOf(destinationFloor));
     }
 
     /**
@@ -420,9 +420,9 @@ public class EntityLift extends BlockEntityBase
      */
     public void setDestX(final float dest)
     {
-        this.dataManager.set(EntityLift.DESTINATIONXDW, Float.valueOf(dest));
-        this.dataManager.set(EntityLift.DESTINATIONYDW, Float.valueOf((float) this.getPosY()));
-        this.dataManager.set(EntityLift.DESTINATIONZDW, Float.valueOf((float) this.getPosZ()));
+        this.entityData.set(EntityLift.DESTINATIONXDW, Float.valueOf(dest));
+        this.entityData.set(EntityLift.DESTINATIONYDW, Float.valueOf((float) this.getY()));
+        this.entityData.set(EntityLift.DESTINATIONZDW, Float.valueOf((float) this.getZ()));
         this.setCalled(true);
     }
 
@@ -432,9 +432,9 @@ public class EntityLift extends BlockEntityBase
      */
     public void setDestY(final float dest)
     {
-        this.dataManager.set(EntityLift.DESTINATIONYDW, Float.valueOf(dest));
-        this.dataManager.set(EntityLift.DESTINATIONXDW, Float.valueOf((float) this.getPosX()));
-        this.dataManager.set(EntityLift.DESTINATIONZDW, Float.valueOf((float) this.getPosZ()));
+        this.entityData.set(EntityLift.DESTINATIONYDW, Float.valueOf(dest));
+        this.entityData.set(EntityLift.DESTINATIONXDW, Float.valueOf((float) this.getX()));
+        this.entityData.set(EntityLift.DESTINATIONZDW, Float.valueOf((float) this.getZ()));
         this.setCalled(true);
     }
 
@@ -444,9 +444,9 @@ public class EntityLift extends BlockEntityBase
      */
     public void setDestZ(final float dest)
     {
-        this.dataManager.set(EntityLift.DESTINATIONZDW, Float.valueOf(dest));
-        this.dataManager.set(EntityLift.DESTINATIONYDW, Float.valueOf((float) this.getPosY()));
-        this.dataManager.set(EntityLift.DESTINATIONXDW, Float.valueOf((float) this.getPosX()));
+        this.entityData.set(EntityLift.DESTINATIONZDW, Float.valueOf(dest));
+        this.entityData.set(EntityLift.DESTINATIONYDW, Float.valueOf((float) this.getY()));
+        this.entityData.set(EntityLift.DESTINATIONXDW, Float.valueOf((float) this.getX()));
         this.setCalled(true);
     }
 
@@ -460,7 +460,7 @@ public class EntityLift extends BlockEntityBase
             // If we don't have a floor, then actually set the position.
             // If we did have one, it was already set, and not cleared, so
             // we do not want to reset it!
-            if (this.hasFloors[floor] <= 0) this.floors[floor] = te.getPos().getY() - 2;
+            if (this.hasFloors[floor] <= 0) this.floors[floor] = te.getBlockPos().getY() - 2;
             this.hasFloors[floor]++;
             changed = true;
 
@@ -510,35 +510,35 @@ public class EntityLift extends BlockEntityBase
     }
 
     @Override
-    public void setItemStackToSlot(final EquipmentSlotType slotIn, final ItemStack stack)
+    public void setItemSlot(final EquipmentSlot slotIn, final ItemStack stack)
     {
     }
 
     @Override
-    public void setSize(final EntitySize size)
+    public void setSize(final EntityDimensions size)
     {
         this.size = size;
     }
 
     @Override
-    public void setTiles(final TileEntity[][][] tiles)
+    public void setTiles(final BlockEntity[][][] tiles)
     {
         super.setTiles(tiles);
-        for (final TileEntity[][] tileArrArr : tiles)
-            for (final TileEntity[] tileArr : tileArrArr)
-                for (final TileEntity tile : tileArr)
+        for (final BlockEntity[][] tileArrArr : tiles)
+            for (final BlockEntity[] tileArr : tileArrArr)
+                for (final BlockEntity tile : tileArr)
                     if (tile instanceof ControllerTile)
                     {
                         ((ControllerTile) tile).setLift(this);
-                        ((ControllerTile) tile).setWorldObj((World) this.getFakeWorld());
+                        ((ControllerTile) tile).setWorldObj((Level) this.getFakeWorld());
                     }
     }
 
     @Override
-    public void writeAdditional(final CompoundNBT arg0)
+    public void addAdditionalSaveData(final CompoundTag arg0)
     {
-        super.writeAdditional(arg0);
-        final CompoundNBT tag = new CompoundNBT();
+        super.addAdditionalSaveData(arg0);
+        final CompoundTag tag = new CompoundTag();
         for (int i = 0; i < this.hasFloors.length; i++)
             if (this.hasFloors[i] > 0)
             {
@@ -546,6 +546,6 @@ public class EntityLift extends BlockEntityBase
                 tag.putInt("_" + i, this.hasFloors[i]);
             }
         arg0.put("floors", tag);
-        if (this.owner != null) arg0.putUniqueId("owner", this.owner);
+        if (this.owner != null) arg0.putUUID("owner", this.owner);
     }
 }

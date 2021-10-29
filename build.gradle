@@ -8,7 +8,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.+', changing: true
     }
 }
 
@@ -30,10 +30,10 @@ version = "${version_minecraft}-${VERSION_COMPILE}"
 group = 'thut'
 archivesBaseName = "${compile_name}"
 
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
+java.toolchain.languageVersion = JavaLanguageVersion.of(16)
 
 minecraft {
-    mappings channel: 'snapshot', version: "${version_mappings}"
+    mappings channel: "${channel_mappings}", version: "${version_mappings}"
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
     runs {
@@ -66,8 +66,10 @@ minecraft {
 
 repositories {
     maven {
-        name = "CurseForge"
-        url = "https://minecraft.curseforge.com/api/maven/"
+        url "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
     }
     flatDir {
         dirs 'libs'
@@ -78,10 +80,12 @@ repositories {
 dependencies {
 
     minecraft "net.minecraftforge:forge:${version_minecraft}-${version_forge}"
+    
     // Thutcore is where most of the code is
-    implementation fg.deobf("libs:thutcore-${version_minecraft}:${version_thutcore}")
+    implementation "${depstr_thutcore}"
+    
     // Computercraft support for controllers
-    implementation fg.deobf("org.squiddev:cc-tweaked-${version_minecraft}:${version_cct}")
+    implementation fg.deobf("org.squiddev:cc-tweaked-${version_cct_mc}:${version_cct}")
 }
 
 jar {

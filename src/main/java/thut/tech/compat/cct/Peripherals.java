@@ -9,10 +9,10 @@ import dan200.computercraft.api.peripheral.IComputerAccess;
 import dan200.computercraft.api.peripheral.IDynamicPeripheral;
 import dan200.computercraft.api.peripheral.IPeripheral;
 import dan200.computercraft.api.peripheral.IPeripheralProvider;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.common.util.LazyOptional;
 import thut.core.common.ThutCore;
 import thut.tech.common.blocks.lift.ControllerTile;
@@ -49,11 +49,11 @@ public class Peripherals
             public boolean moveBy(final String axis, final float amount) throws LuaException
             {
                 if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
-                if (axis.equalsIgnoreCase("x")) this.tile.getLift().setDestX((float) (this.tile.getLift().getPosX()
+                if (axis.equalsIgnoreCase("x")) this.tile.getLift().setDestX((float) (this.tile.getLift().getX()
                         + amount));
-                if (axis.equalsIgnoreCase("y")) this.tile.getLift().setDestY((float) (this.tile.getLift().getPosY()
+                if (axis.equalsIgnoreCase("y")) this.tile.getLift().setDestY((float) (this.tile.getLift().getY()
                         + amount));
-                if (axis.equalsIgnoreCase("z")) this.tile.getLift().setDestZ((float) (this.tile.getLift().getPosZ()
+                if (axis.equalsIgnoreCase("z")) this.tile.getLift().setDestZ((float) (this.tile.getLift().getZ()
                         + amount));
                 return true;
             }
@@ -71,8 +71,8 @@ public class Peripherals
             public double[] find() throws LuaException
             {
                 if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
-                return new double[] { this.tile.getLift().getPosX(), this.tile.getLift().getPosY(), this.tile.getLift()
-                        .getPosZ() };
+                return new double[] { this.tile.getLift().getX(), this.tile.getLift().getY(), this.tile.getLift()
+                        .getZ() };
 
             }
             public boolean has()
@@ -97,9 +97,9 @@ public class Peripherals
           }
           public double getCoord(final String axis) throws LuaException {
               if (this.tile.getLift() == null) throw new LuaException("No Elevator Linked!");
-              if (axis.equalsIgnoreCase("x")) return this.tile.getLift().getPosX();
-              if (axis.equalsIgnoreCase("y")) return this.tile.getLift().getPosY();
-              if (axis.equalsIgnoreCase("z")) return this.tile.getLift().getPosZ();
+              if (axis.equalsIgnoreCase("x")) return this.tile.getLift().getX();
+              if (axis.equalsIgnoreCase("y")) return this.tile.getLift().getY();
+              if (axis.equalsIgnoreCase("z")) return this.tile.getLift().getZ();
               return -1;
           }
           public double getFloorYValue(final int floor) throws LuaException {
@@ -179,9 +179,9 @@ public class Peripherals
     public static class ElevatorPeripheralProvider implements IPeripheralProvider
     {
         @Override
-        public LazyOptional<IPeripheral> getPeripheral(final World world, final BlockPos pos, final Direction side)
+        public LazyOptional<IPeripheral> getPeripheral(final Level world, final BlockPos pos, final Direction side)
         {
-            final TileEntity tile = world.getTileEntity(pos);
+            final BlockEntity tile = world.getBlockEntity(pos);
             if (tile instanceof ControllerTile) return LazyOptional.of(() -> new ElevatorPeripheral(
                     (ControllerTile) tile));
             return LazyOptional.empty();

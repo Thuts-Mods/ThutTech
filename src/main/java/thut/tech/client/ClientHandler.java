@@ -5,29 +5,28 @@ import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.vertex.IVertexBuilder;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Matrix4f;
+import com.mojang.math.Vector3f;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.RenderTypeLookup;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.RayTraceResult.Type;
-import net.minecraft.util.math.vector.Matrix4f;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.math.vector.Vector3f;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.client.registry.ClientRegistry;
-import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import thut.api.maths.Vector3;
@@ -46,26 +45,27 @@ public class ClientHandler
         public static void RenderBounds(final RenderWorldLastEvent event)
         {
             ItemStack held;
-            final PlayerEntity player = Minecraft.getInstance().player;
-            if (!(held = player.getHeldItemMainhand()).isEmpty() || !(held = player.getHeldItemOffhand()).isEmpty())
+            final Player player = Minecraft.getInstance().player;
+            if (!(held = player.getMainHandItem()).isEmpty() || !(held = player.getOffhandItem()).isEmpty())
             {
                 if (held.getItem() != TechCore.LIFT.get()) return;
                 if (held.getTag() != null && held.getTag().contains("min"))
                 {
                     final Minecraft mc = Minecraft.getInstance();
-                    final Vector3d projectedView = mc.gameRenderer.getActiveRenderInfo().getProjectedView();
-                    Vector3d pointed = new Vector3d(projectedView.x, projectedView.y, projectedView.z).add(mc.player
-                            .getLook(event.getPartialTicks()));
-                    if (mc.objectMouseOver != null && mc.objectMouseOver.getType() == Type.BLOCK)
+                    final Vec3 projectedView = mc.gameRenderer.getMainCamera().getPosition();
+                    Vec3 pointed = new Vec3(projectedView.x, projectedView.y, projectedView.z).add(mc.player
+                            .getViewVector(event.getPartialTicks()));
+                    if (mc.hitResult != null && mc.hitResult.getType() == Type.BLOCK)
                     {
-                        final BlockRayTraceResult result = (BlockRayTraceResult) mc.objectMouseOver;
-                        pointed = new Vector3d(result.getPos().getX(), result.getPos().getY(), result.getPos().getZ());
+                        final BlockHitResult result = (BlockHitResult) mc.hitResult;
+                        pointed = new Vec3(result.getBlockPos().getX(), result.getBlockPos().getY(), result
+                                .getBlockPos().getZ());
                         //
                     }
                     final Vector3 v = Vector3.readFromNBT(held.getTag().getCompound("min"), "");
 
-                    final AxisAlignedBB one = new AxisAlignedBB(v.getPos());
-                    final AxisAlignedBB two = new AxisAlignedBB(new BlockPos(pointed));
+                    final AABB one = new AABB(v.getPos());
+                    final AABB two = new AABB(new BlockPos(pointed));
 
                     final double minX = Math.min(one.minX, two.minX);
                     final double minY = Math.min(one.minY, two.minY);
@@ -74,7 +74,7 @@ public class ClientHandler
                     final double maxY = Math.max(one.maxY, two.maxY);
                     final double maxZ = Math.max(one.maxZ, two.maxZ);
 
-                    final MatrixStack mat = event.getMatrixStack();
+                    final PoseStack mat = event.getMatrixStack();
                     mat.translate(-projectedView.x, -projectedView.y, -projectedView.z);
 
                     final List<Pair<Vector3f, Vector3f>> lines = Lists.newArrayList();
@@ -106,30 +106,35 @@ public class ClientHandler
                     lines.add(Pair.of(new Vector3f((float) maxX, (float) minY, (float) maxZ), new Vector3f((float) maxX,
                             (float) maxY, (float) maxZ)));
 
-                    mat.push();
+                    mat.pushPose();
 
-                    final Matrix4f positionMatrix = mat.getLast().getMatrix();
+                    final Matrix4f positionMatrix = mat.last().pose();
 
-                    final IRenderTypeBuffer.Impl buffer = Minecraft.getInstance().getRenderTypeBuffers()
-                            .getBufferSource();
-                    final IVertexBuilder builder = buffer.getBuffer(RenderType.LINES);
+                    final MultiBufferSource.BufferSource buffer = Minecraft.getInstance().renderBuffers()
+                            .bufferSource();
+                    final VertexConsumer builder = buffer.getBuffer(RenderType.LINES);
                     for (final Pair<Vector3f, Vector3f> line : lines)
-                        thut.core.proxy.ClientProxy.line(builder, positionMatrix, line.getLeft(), line.getRight(), 1, 0,
+                        thut.core.init.ClientInit.line(builder, positionMatrix, line.getLeft(), line.getRight(), 1, 0,
                                 0, 1f);
-                    mat.pop();
+                    mat.popPose();
                 }
             }
         }
     }
 
     @SubscribeEvent
+    public static void registerRenderers(final RegisterRenderers event)
+    {
+        event.registerEntityRenderer(TechCore.LIFTTYPE.get(), RenderLift::new);
+        event.registerBlockEntityRenderer(TechCore.CONTROLTYPE.get(), ControllerRenderer::new);
+    }
+
+    @SubscribeEvent
     public static void setupClient(final FMLClientSetupEvent event)
     {
         MinecraftForge.EVENT_BUS.register(BoundRenderer.class);
-        RenderingRegistry.registerEntityRenderingHandler(TechCore.LIFTTYPE.get(), RenderLift::new);
-        ClientRegistry.bindTileEntityRenderer(TechCore.CONTROLTYPE.get(), ControllerRenderer::new);
 
-        RenderTypeLookup.setRenderLayer(TechCore.LIFTCONTROLLER.get(), t -> (t == RenderType.getTranslucent()
-                || t == RenderType.getCutoutMipped()));
+        ItemBlockRenderTypes.setRenderLayer(TechCore.LIFTCONTROLLER.get(), t -> (t == RenderType.translucent()
+                || t == RenderType.cutoutMipped()));
     }
 }

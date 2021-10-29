@@ -1,32 +1,36 @@
 package thut.tech.common.blocks.lift;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.item.Items;
-import net.minecraft.state.BooleanProperty;
-import net.minecraft.state.StateContainer;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.IWorldReader;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
+import thut.api.block.ITickTile;
 import thut.core.common.network.TileUpdate;
 import thut.tech.common.TechCore;
 
-public class ControllerBlock extends Block
+public class ControllerBlock extends Block implements EntityBlock
 {
     public static final BooleanProperty CALLED  = BooleanProperty.create("called");
     public static final BooleanProperty MASKED  = BooleanProperty.create("masked");
@@ -35,24 +39,26 @@ public class ControllerBlock extends Block
     public ControllerBlock(final Block.Properties props)
     {
         super(props);
-        this.setDefaultState(this.stateContainer.getBaseState().with(ControllerBlock.CALLED, false).with(
-                ControllerBlock.MASKED, false).with(ControllerBlock.CURRENT, false));
+        this.registerDefaultState(this.stateDefinition.any().setValue(ControllerBlock.CALLED, false).setValue(
+                ControllerBlock.MASKED, false).setValue(ControllerBlock.CURRENT, false));
     }
 
     @Override
-    public TileEntity createTileEntity(final BlockState state, final IBlockReader world)
+    public BlockEntity newBlockEntity(final BlockPos pos, final BlockState state)
     {
-        return new ControllerTile();
+        // TODO Auto-generated method stub
+        return new ControllerTile(pos, state);
     }
 
     @Override
-    public boolean hasTileEntity(final BlockState state)
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(final Level level, final BlockState state,
+            final BlockEntityType<T> type)
     {
-        return true;
+        return ITickTile.getTicker(level, state, type);
     }
 
     @Override
-    protected void fillStateContainer(final StateContainer.Builder<Block, BlockState> builder)
+    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder)
     {
         builder.add(ControllerBlock.CALLED);
         builder.add(ControllerBlock.CURRENT);
@@ -61,12 +67,11 @@ public class ControllerBlock extends Block
 
     // RedStone stuff
     @Override
-    public int getWeakPower(final BlockState blockState, final IBlockReader blockAccess, final BlockPos pos,
-            Direction side)
+    public int getSignal(final BlockState blockState, final BlockGetter blockAccess, final BlockPos pos, Direction side)
     {
-        final ControllerTile te = (ControllerTile) blockAccess.getTileEntity(pos);
-        final boolean here = blockState.get(ControllerBlock.CURRENT);
-        final boolean called = blockState.get(ControllerBlock.CALLED);
+        final ControllerTile te = (ControllerTile) blockAccess.getBlockEntity(pos);
+        final boolean here = blockState.getValue(ControllerBlock.CURRENT);
+        final boolean called = blockState.getValue(ControllerBlock.CALLED);
         side = side.getOpposite();
         if (te.isSideOn(side))
         {
@@ -78,12 +83,12 @@ public class ControllerBlock extends Block
     }
 
     @Override
-    public int getStrongPower(final BlockState blockState, final IBlockReader blockAccess, final BlockPos pos,
+    public int getDirectSignal(final BlockState blockState, final BlockGetter blockAccess, final BlockPos pos,
             Direction side)
     {
-        final ControllerTile te = (ControllerTile) blockAccess.getTileEntity(pos);
-        final boolean here = blockState.get(ControllerBlock.CURRENT);
-        final boolean called = blockState.get(ControllerBlock.CALLED);
+        final ControllerTile te = (ControllerTile) blockAccess.getBlockEntity(pos);
+        final boolean here = blockState.getValue(ControllerBlock.CURRENT);
+        final boolean called = blockState.getValue(ControllerBlock.CALLED);
         side = side.getOpposite();
         if (te.isSideOn(side))
         {
@@ -94,12 +99,12 @@ public class ControllerBlock extends Block
     }
 
     @Override
-    public boolean shouldCheckWeakPower(final BlockState state, final IWorldReader world, final BlockPos pos,
+    public boolean shouldCheckWeakPower(final BlockState state, final LevelReader world, final BlockPos pos,
             Direction side)
     {
-        final ControllerTile te = (ControllerTile) world.getTileEntity(pos);
+        final ControllerTile te = (ControllerTile) world.getBlockEntity(pos);
         side = side.getOpposite();
-        final boolean called = state.get(ControllerBlock.CALLED);
+        final boolean called = state.getValue(ControllerBlock.CALLED);
         // Note that we do not check if the side is on, as this allows
         // only buttons, with no display number!
         if (te.isCallPanel(side) && !called) return true;
@@ -111,7 +116,7 @@ public class ControllerBlock extends Block
      * change based on its state.
      */
     @Override
-    public boolean canProvidePower(final BlockState state)
+    public boolean isSignalSource(final BlockState state)
     {
         return true;
     }
@@ -119,92 +124,90 @@ public class ControllerBlock extends Block
     // End of Redstone
 
     @Override
-    public ActionResultType onBlockActivated(final BlockState state, final World worldIn, final BlockPos pos,
-            final PlayerEntity playerIn, final Hand handIn, final BlockRayTraceResult hit)
+    public InteractionResult use(final BlockState state, final Level worldIn, final BlockPos pos, final Player playerIn,
+            final InteractionHand handIn, final BlockHitResult hit)
     {
-        final ItemStack heldItem = playerIn.getHeldItem(handIn);
-        final Direction side = hit.getFace();
+        final ItemStack heldItem = playerIn.getItemInHand(handIn);
+        final Direction side = hit.getDirection();
         final boolean linkerOrStick = heldItem.getItem() == Items.STICK || heldItem.getItem() == TechCore.LINKER.get();
-        if (linkerOrStick && playerIn.isSneaking())
+        if (linkerOrStick && playerIn.isShiftKeyDown())
         {
-            final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
-            if (te == null) return ActionResultType.PASS;
+            final ControllerTile te = (ControllerTile) worldIn.getBlockEntity(pos);
+            if (te == null) return InteractionResult.PASS;
             if (te.isSideOn(side))
             {
                 te.setSide(side, false);
-                if (!te.getWorld().isRemote) TileUpdate.sendUpdate(te);
-                return ActionResultType.SUCCESS;
+                if (!te.getLevel().isClientSide) TileUpdate.sendUpdate(te);
+                return InteractionResult.SUCCESS;
             }
-            return ActionResultType.PASS;
+            return InteractionResult.PASS;
         }
-        final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
-        if (te == null) return ActionResultType.PASS;
+        final ControllerTile te = (ControllerTile) worldIn.getBlockEntity(pos);
+        if (te == null) return InteractionResult.PASS;
 
         if (!linkerOrStick && side == Direction.DOWN)
         {
             if (heldItem.getItem() instanceof BlockItem)
             {
-                final BlockItemUseContext context = new BlockItemUseContext(new ItemUseContext(playerIn, handIn, hit));
+                final BlockPlaceContext context = new BlockPlaceContext(new UseOnContext(playerIn, handIn, hit));
                 te.copiedState = ((BlockItem) heldItem.getItem()).getBlock().getStateForPlacement(context);
-                worldIn.setBlockState(pos, state.with(ControllerBlock.MASKED, true));
-                if (!te.getWorld().isRemote) TileUpdate.sendUpdate(te);
-                return ActionResultType.SUCCESS;
+                worldIn.setBlockAndUpdate(pos, state.setValue(ControllerBlock.MASKED, true));
+                if (!te.getLevel().isClientSide) TileUpdate.sendUpdate(te);
+                return InteractionResult.SUCCESS;
             }
-            return ActionResultType.PASS;
+            return InteractionResult.PASS;
         }
         if (!te.isSideOn(side) || heldItem.getItem() == Items.STICK)
         {
             if (linkerOrStick)
             {
-                if (!worldIn.isRemote)
+                if (!worldIn.isClientSide)
                 {
                     te.setSide(side, !te.isSideOn(side));
-                    if (worldIn instanceof ServerWorld) te.sendUpdate((ServerPlayerEntity) playerIn);
+                    if (worldIn instanceof ServerLevel) te.sendUpdate((ServerPlayer) playerIn);
                 }
-                return ActionResultType.SUCCESS;
+                return InteractionResult.SUCCESS;
             }
         }
         else if (te.isSideOn(side)) if (heldItem.getItem() == TechCore.LINKER.get())
         {
-            if (!worldIn.isRemote && !te.isEditMode(side) && !te.isFloorDisplay(side))
+            if (!worldIn.isClientSide && !te.isEditMode(side) && !te.isFloorDisplay(side))
             {
                 te.setSidePage(side, (te.getSidePage(side) + 1) % 8);
-                if (playerIn instanceof ServerPlayerEntity) te.sendUpdate((ServerPlayerEntity) playerIn);
+                if (playerIn instanceof ServerPlayer) te.sendUpdate((ServerPlayer) playerIn);
                 TileUpdate.sendUpdate(te);
             }
-            return ActionResultType.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
-        else if (!playerIn.isSneaking())
+        else if (!playerIn.isShiftKeyDown())
         {
-            final float hitX = (float) hit.getHitVec().x;
-            final float hitY = (float) hit.getHitVec().y;
-            final float hitZ = (float) hit.getHitVec().z;
-            return te.doButtonClick(playerIn, side, hitX, hitY, hitZ) ? ActionResultType.SUCCESS
-                    : ActionResultType.PASS;
+            final float hitX = (float) hit.getLocation().x;
+            final float hitY = (float) hit.getLocation().y;
+            final float hitZ = (float) hit.getLocation().z;
+            return te.doButtonClick(playerIn, side, hitX, hitY, hitZ) ? InteractionResult.SUCCESS
+                    : InteractionResult.PASS;
         }
 
-        if (playerIn.isSneaking() && handIn == Hand.MAIN_HAND && playerIn instanceof ServerPlayerEntity)
+        if (playerIn.isShiftKeyDown() && handIn == InteractionHand.MAIN_HAND && playerIn instanceof ServerPlayer)
         {
             final boolean sideOn = !te.isSideOn(side);
-            playerIn.sendMessage(new TranslationTextComponent("msg.lift.side." + (sideOn ? "on" : "off")),
-                    Util.DUMMY_UUID);
+            playerIn.sendMessage(new TranslatableComponent("msg.lift.side." + (sideOn ? "on" : "off")), Util.NIL_UUID);
             if (sideOn)
             {
                 final boolean call = te.isCallPanel(side);
                 final boolean edit = te.isEditMode(side);
                 final boolean display = te.isFloorDisplay(side);
-                if (edit) playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.edit"), Util.DUMMY_UUID);
-                else if (call) playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.call"),
-                        Util.DUMMY_UUID);
-                else if (display) playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.display"),
-                        Util.DUMMY_UUID);
+                if (edit) playerIn.sendMessage(new TranslatableComponent("msg.lift.side.edit"), Util.NIL_UUID);
+                else if (call) playerIn.sendMessage(new TranslatableComponent("msg.lift.side.call"), Util.NIL_UUID);
+                else if (display) playerIn.sendMessage(new TranslatableComponent("msg.lift.side.display"),
+                        Util.NIL_UUID);
                 else
                 {
                     final int page = te.getSidePage(side);
-                    playerIn.sendMessage(new TranslationTextComponent("msg.lift.side.page", page), Util.DUMMY_UUID);
+                    playerIn.sendMessage(new TranslatableComponent("msg.lift.side.page", page), Util.NIL_UUID);
                 }
             }
         }
-        return ActionResultType.PASS;
+        return InteractionResult.PASS;
     }
 }

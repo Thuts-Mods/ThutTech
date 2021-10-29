@@ -1,11 +1,11 @@
 package thut.tech.common.network;
 
 import io.netty.buffer.Unpooled;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.core.BlockPos;
 import thut.api.entity.blockentity.world.IBlockEntityWorld;
 import thut.core.common.network.Packet;
 import thut.tech.common.TechCore;
@@ -16,7 +16,7 @@ public class PacketLift extends Packet
 {
     public static void sendButtonPress(final BlockPos controller, final int button, final boolean callPanel)
     {
-        final PacketBuffer buffer = new PacketBuffer(Unpooled.buffer(37));
+        final FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer(37));
         buffer.writeByte(0);
         buffer.writeInt(-1); // No known lift here
         buffer.writeBlockPos(controller);
@@ -34,9 +34,9 @@ public class PacketLift extends Packet
             PacketLift.sendButtonPress(controller, button, callPanel);
             return;
         }
-        final PacketBuffer buffer = new PacketBuffer(Unpooled.buffer(37));
+        final FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer(37));
         buffer.writeByte(1);
-        buffer.writeInt(lift.getEntityId());
+        buffer.writeInt(lift.getId());
         buffer.writeBlockPos(controller);
         buffer.writeInt(button);
         buffer.writeBoolean(callPanel);
@@ -58,7 +58,7 @@ public class PacketLift extends Packet
     {
     }
 
-    public PacketLift(final PacketBuffer buffer)
+    public PacketLift(final FriendlyByteBuf buffer)
     {
         this.key = buffer.readByte();
         switch (this.key)
@@ -79,12 +79,12 @@ public class PacketLift extends Packet
      * Handles Server side interaction.
      */
     @Override
-    public void handleServer(final ServerPlayerEntity player)
+    public void handleServer(final ServerPlayer player)
     {
         if (this.pos == null) return;
-        TileEntity tile = player.getEntityWorld().getTileEntity(this.pos);
+        BlockEntity tile = player.getCommandSenderWorld().getBlockEntity(this.pos);
         EntityLift lift = null;
-        final Entity mob = player.getEntityWorld().getEntityByID(this.mobId);
+        final Entity mob = player.getCommandSenderWorld().getEntity(this.mobId);
 
         switch (this.key)
         {
@@ -110,7 +110,7 @@ public class PacketLift extends Packet
     }
 
     @Override
-    public void write(final PacketBuffer buffer)
+    public void write(final FriendlyByteBuf buffer)
     {
         buffer.writeByte(this.key);
 

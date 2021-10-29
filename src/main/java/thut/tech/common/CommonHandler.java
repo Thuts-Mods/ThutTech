@@ -1,15 +1,15 @@
 package thut.tech.common;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.Util;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -31,13 +31,13 @@ public class CommonHandler
         @SubscribeEvent
         public static void interactRightClickBlock(final PlayerInteractEvent.RightClickBlock evt)
         {
-            if (evt.getHand() == Hand.OFF_HAND || evt.getWorld().isRemote || evt.getItemStack().isEmpty() || evt
+            if (evt.getHand() == InteractionHand.OFF_HAND || evt.getWorld().isClientSide || evt.getItemStack().isEmpty() || evt
                     .getItemStack().getItem() != TechCore.LIFT.get()) return;
 
             final ItemStack itemstack = evt.getItemStack();
-            final PlayerEntity playerIn = evt.getPlayer();
-            final World worldIn = evt.getWorld();
-            if (!evt.getPlayer().isSneaking())
+            final Player playerIn = evt.getPlayer();
+            final Level worldIn = evt.getWorld();
+            if (!evt.getPlayer().isShiftKeyDown())
             {
                 if (itemstack.hasTag())
                 {
@@ -45,20 +45,20 @@ public class CommonHandler
                     itemstack.getTag().remove("time");
                     if (itemstack.getTag().isEmpty()) itemstack.setTag(null);
                     final String message = "msg.lift.reset";
-                    if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message), Util.DUMMY_UUID);
+                    if (!worldIn.isClientSide) playerIn.sendMessage(new TranslatableComponent(message), Util.NIL_UUID);
                     evt.setCanceled(true);
                 }
                 return;
             }
 
             final BlockPos pos = evt.getPos();
-            if (itemstack.hasTag() && playerIn.isSneaking() && itemstack.getTag().contains("min"))
+            if (itemstack.hasTag() && playerIn.isShiftKeyDown() && itemstack.getTag().contains("min"))
             {
-                final CompoundNBT minTag = itemstack.getTag().getCompound("min");
+                final CompoundTag minTag = itemstack.getTag().getCompound("min");
                 itemstack.getTag().putLong("time", worldIn.getGameTime());
                 BlockPos min = pos;
                 BlockPos max = Vector3.readFromNBT(minTag, "").getPos();
-                final AxisAlignedBB box = new AxisAlignedBB(min, max);
+                final AABB box = new AABB(min, max);
                 min = new BlockPos(box.minX, box.minY, box.minZ);
                 max = new BlockPos(box.maxX, box.maxY, box.maxZ);
                 final BlockPos mid = min;
@@ -68,42 +68,42 @@ public class CommonHandler
                 if (max.getY() - min.getY() > TechCore.config.maxHeight || dw > 2 * TechCore.config.maxRadius + 1)
                 {
                     final String message = "msg.lift.toobig";
-                    if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message), Util.DUMMY_UUID);
+                    if (!worldIn.isClientSide) playerIn.sendMessage(new TranslatableComponent(message), Util.NIL_UUID);
                     return;
                 }
                 final int num = (dw + 1) * (max.getY() - min.getY() + 1);
                 int count = 0;
-                for (final ItemStack item : playerIn.inventory.mainInventory)
+                for (final ItemStack item : playerIn.getInventory().items)
                     if (item.getItem() == TechCore.LIFT.get()) count += item.getCount();
-                if (!playerIn.abilities.isCreativeMode && count < num)
+                if (!playerIn.getAbilities().instabuild && count < num)
                 {
                     final String message = "msg.lift.noblock";
-                    if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message, num),
-                            Util.DUMMY_UUID);
+                    if (!worldIn.isClientSide) playerIn.sendMessage(new TranslatableComponent(message, num),
+                            Util.NIL_UUID);
                     return;
                 }
-                else if (!playerIn.abilities.isCreativeMode) playerIn.inventory.func_234564_a_(b -> b
-                        .getItem() == TechCore.LIFT.get(), num, playerIn.container.func_234641_j_());
-                if (!worldIn.isRemote)
+                else if (!playerIn.getAbilities().instabuild) playerIn.getInventory().clearOrCountMatchingItems(b -> b
+                        .getItem() == TechCore.LIFT.get(), num, playerIn.inventoryMenu.getCraftSlots());
+                if (!worldIn.isClientSide)
                 {
                     final EntityLift lift = IBlockEntity.BlockEntityFormer.makeBlockEntity(worldIn, min, max, mid,
                             TechCore.LIFTTYPE.get());
-                    if (lift != null) lift.owner = playerIn.getUniqueID();
+                    if (lift != null) lift.owner = playerIn.getUUID();
                     final String message = lift != null ? "msg.lift.create" : "msg.lift.fail";
-                    playerIn.sendMessage(new TranslationTextComponent(message), Util.DUMMY_UUID);
+                    playerIn.sendMessage(new TranslatableComponent(message), Util.NIL_UUID);
                 }
                 itemstack.getTag().remove("min");
                 evt.setCanceled(true);
             }
             else
             {
-                if (!itemstack.hasTag()) itemstack.setTag(new CompoundNBT());
-                final CompoundNBT min = new CompoundNBT();
+                if (!itemstack.hasTag()) itemstack.setTag(new CompoundTag());
+                final CompoundTag min = new CompoundTag();
                 Vector3.getNewVector().set(pos).writeToNBT(min, "");
                 itemstack.getTag().put("min", min);
                 final String message = "msg.lift.setcorner";
-                if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message, pos),
-                        Util.DUMMY_UUID);
+                if (!worldIn.isClientSide) playerIn.sendMessage(new TranslatableComponent(message, pos),
+                        Util.NIL_UUID);
                 evt.setCanceled(true);
                 itemstack.getTag().putLong("time", worldIn.getGameTime());
             }
@@ -112,13 +112,13 @@ public class CommonHandler
         @SubscribeEvent
         public static void interactRightClickBlock(final PlayerInteractEvent.RightClickItem evt)
         {
-            if (evt.getHand() == Hand.OFF_HAND || evt.getWorld().isRemote || evt.getItemStack().isEmpty() || evt
+            if (evt.getHand() == InteractionHand.OFF_HAND || evt.getWorld().isClientSide || evt.getItemStack().isEmpty() || evt
                     .getItemStack().getItem() != TechCore.LIFT.get()) return;
             final ItemStack itemstack = evt.getItemStack();
-            final PlayerEntity playerIn = evt.getPlayer();
-            final World worldIn = evt.getWorld();
+            final Player playerIn = evt.getPlayer();
+            final Level worldIn = evt.getWorld();
 
-            if (!evt.getPlayer().isSneaking())
+            if (!evt.getPlayer().isShiftKeyDown())
             {
                 if (itemstack.hasTag())
                 {
@@ -127,7 +127,7 @@ public class CommonHandler
                     if (itemstack.getTag().isEmpty()) itemstack.setTag(null);
                 }
                 final String message = "msg.lift.reset";
-                if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message), Util.DUMMY_UUID);
+                if (!worldIn.isClientSide) playerIn.sendMessage(new TranslatableComponent(message), Util.NIL_UUID);
                 return;
             }
 
@@ -135,13 +135,13 @@ public class CommonHandler
             final boolean alreadyUsed = validTag && itemstack.getTag().getLong("time") - worldIn.getGameTime() == 0;
             if (validTag && !alreadyUsed)
             {
-                final CompoundNBT minTag = itemstack.getTag().getCompound("min");
-                final Vector3d loc = playerIn.getPositionVec().add(0, playerIn.getEyeHeight(), 0).add(playerIn
-                        .getLookVec().scale(2));
+                final CompoundTag minTag = itemstack.getTag().getCompound("min");
+                final Vec3 loc = playerIn.position().add(0, playerIn.getEyeHeight(), 0).add(playerIn
+                        .getLookAngle().scale(2));
                 final BlockPos pos = new BlockPos(loc);
                 BlockPos min = pos;
                 BlockPos max = Vector3.readFromNBT(minTag, "").getPos();
-                final AxisAlignedBB box = new AxisAlignedBB(min, max);
+                final AABB box = new AABB(min, max);
                 min = new BlockPos(box.minX, box.minY, box.minZ);
                 max = new BlockPos(box.maxX, box.maxY, box.maxZ);
                 final BlockPos mid = min;
@@ -151,29 +151,29 @@ public class CommonHandler
                 if (max.getY() - min.getY() > TechCore.config.maxHeight || dw > 2 * TechCore.config.maxRadius + 1)
                 {
                     final String message = "msg.lift.toobig";
-                    if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message), Util.DUMMY_UUID);
+                    if (!worldIn.isClientSide) playerIn.sendMessage(new TranslatableComponent(message), Util.NIL_UUID);
                     return;
                 }
                 final int num = (dw + 1) * (max.getY() - min.getY() + 1);
                 int count = 0;
-                for (final ItemStack item : playerIn.inventory.mainInventory)
+                for (final ItemStack item : playerIn.getInventory().items)
                     if (item.getItem() == TechCore.LIFT.get()) count += item.getCount();
-                if (!playerIn.abilities.isCreativeMode && count < num)
+                if (!playerIn.getAbilities().instabuild && count < num)
                 {
                     final String message = "msg.lift.noblock";
-                    if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message, num),
-                            Util.DUMMY_UUID);
+                    if (!worldIn.isClientSide) playerIn.sendMessage(new TranslatableComponent(message, num),
+                            Util.NIL_UUID);
                     return;
                 }
-                else if (!playerIn.abilities.isCreativeMode) playerIn.inventory.func_234564_a_(i -> i
-                        .getItem() == TechCore.LIFT.get(), num, playerIn.container.func_234641_j_());
-                if (!worldIn.isRemote)
+                else if (!playerIn.getAbilities().instabuild) playerIn.getInventory().clearOrCountMatchingItems(i -> i
+                        .getItem() == TechCore.LIFT.get(), num, playerIn.inventoryMenu.getCraftSlots());
+                if (!worldIn.isClientSide)
                 {
                     final EntityLift lift = IBlockEntity.BlockEntityFormer.makeBlockEntity(worldIn, min, max, mid,
                             TechCore.LIFTTYPE.get());
-                    if (lift != null) lift.owner = playerIn.getUniqueID();
+                    if (lift != null) lift.owner = playerIn.getUUID();
                     final String message = lift != null ? "msg.lift.create" : "msg.lift.fail";
-                    playerIn.sendMessage(new TranslationTextComponent(message), Util.DUMMY_UUID);
+                    playerIn.sendMessage(new TranslatableComponent(message), Util.NIL_UUID);
                 }
                 itemstack.getTag().remove("min");
             }

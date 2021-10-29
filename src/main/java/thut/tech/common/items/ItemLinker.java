@@ -2,19 +2,19 @@ package thut.tech.common.items;
 
 import java.util.UUID;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.World;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.core.Direction;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.world.level.Level;
 import thut.tech.common.TechCore;
 import thut.tech.common.blocks.lift.ControllerTile;
 import thut.tech.common.entity.EntityLift;
@@ -27,31 +27,31 @@ public class ItemLinker extends Item
     }
 
     @Override
-    public ActionResultType onItemUse(final ItemUseContext context)
+    public InteractionResult useOn(final UseOnContext context)
     {
-        final ItemStack stack = context.getItem();
-        final PlayerEntity playerIn = context.getPlayer();
-        final BlockPos pos = context.getPos();
-        final World worldIn = context.getWorld();
+        final ItemStack stack = context.getItemInHand();
+        final Player playerIn = context.getPlayer();
+        final BlockPos pos = context.getClickedPos();
+        final Level worldIn = context.getLevel();
         final BlockState state = worldIn.getBlockState(pos);
-        final Direction face = context.getFace();
+        final Direction face = context.getClickedFace();
 
         final boolean linked = stack.hasTag() && stack.getTag().contains("lift");
         if (!linked && state.getBlock() == TechCore.LIFTCONTROLLER.get())
         {
-            final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
+            final ControllerTile te = (ControllerTile) worldIn.getBlockEntity(pos);
             te.editFace[face.ordinal()] = !te.editFace[face.ordinal()];
-            return ActionResultType.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
-        if (!stack.hasTag()) return ActionResultType.PASS;
+        if (!stack.hasTag()) return InteractionResult.PASS;
         else
         {
-            if (state.getBlock() == TechCore.LIFTCONTROLLER.get() && !playerIn.isSneaking())
+            if (state.getBlock() == TechCore.LIFTCONTROLLER.get() && !playerIn.isShiftKeyDown())
             {
-                final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
+                final ControllerTile te = (ControllerTile) worldIn.getBlockEntity(pos);
                 te.setSide(face, true);
-                return ActionResultType.SUCCESS;
+                return InteractionResult.SUCCESS;
             }
 
             UUID liftID;
@@ -64,53 +64,53 @@ public class ItemLinker extends Item
                 liftID = new UUID(0000, 0000);
             }
             final EntityLift lift = EntityLift.getLiftFromUUID(liftID, worldIn);
-            if (playerIn.isSneaking() && lift != null && state.getBlock() == TechCore.LIFTCONTROLLER.get())
+            if (playerIn.isShiftKeyDown() && lift != null && state.getBlock() == TechCore.LIFTCONTROLLER.get())
             {
                 if (face != Direction.UP && face != Direction.DOWN)
                 {
-                    final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
+                    final ControllerTile te = (ControllerTile) worldIn.getBlockEntity(pos);
                     te.setLift(lift);
-                    int floor = te.getButtonFromClick(face, context.getHitVec().x, context.getHitVec().y, context
-                            .getHitVec().z);
+                    int floor = te.getButtonFromClick(face, context.getClickLocation().x, context.getClickLocation().y, context
+                            .getClickLocation().z);
                     te.setFloor(floor);
                     if (floor >= 64) floor = 64 - floor;
                     final String message = "msg.floorSet";
-                    if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message, floor),
-                            Util.DUMMY_UUID);
-                    return ActionResultType.SUCCESS;
+                    if (!worldIn.isClientSide) playerIn.sendMessage(new TranslatableComponent(message, floor),
+                            Util.NIL_UUID);
+                    return InteractionResult.SUCCESS;
                 }
             }
-            else if (playerIn.isSneaking() && state.getBlock() == TechCore.LIFTCONTROLLER.get() && face != Direction.UP
+            else if (playerIn.isShiftKeyDown() && state.getBlock() == TechCore.LIFTCONTROLLER.get() && face != Direction.UP
                     && face != Direction.DOWN)
             {
-                final ControllerTile te = (ControllerTile) worldIn.getTileEntity(pos);
+                final ControllerTile te = (ControllerTile) worldIn.getBlockEntity(pos);
                 te.editFace[face.ordinal()] = !te.editFace[face.ordinal()];
                 te.setSidePage(face, 0);
                 final String message = "msg.editMode";
-                if (!worldIn.isRemote) playerIn.sendMessage(new TranslationTextComponent(message, te.editFace[face
-                        .ordinal()]), Util.DUMMY_UUID);
-                return ActionResultType.SUCCESS;
+                if (!worldIn.isClientSide) playerIn.sendMessage(new TranslatableComponent(message, te.editFace[face
+                        .ordinal()]), Util.NIL_UUID);
+                return InteractionResult.SUCCESS;
             }
         }
-        return ActionResultType.PASS;
+        return InteractionResult.PASS;
     }
 
     public void setLift(final EntityLift lift, final ItemStack stack)
     {
-        if (stack.getTag() == null) stack.setTag(new CompoundNBT());
-        stack.getTag().putString("lift", lift.getCachedUniqueIdString());
+        if (stack.getTag() == null) stack.setTag(new CompoundTag());
+        stack.getTag().putString("lift", lift.getStringUUID());
     }
 
     @Override
-    public ITextComponent getDisplayName(final ItemStack stack)
+    public Component getName(final ItemStack stack)
     {
-        if (stack.hasTag() && stack.getTag().contains("lift")) return new TranslationTextComponent(
+        if (stack.hasTag() && stack.getTag().contains("lift")) return new TranslatableComponent(
                 "item.thuttech.linker.linked");
-        return super.getDisplayName(stack);
+        return super.getName(stack);
     }
 
     @Override
-    public boolean shouldSyncTag()
+    public boolean shouldOverrideMultiplayerNbt()
     {
         return true;
     }

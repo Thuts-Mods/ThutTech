@@ -1,13 +1,11 @@
 package thut.tech.common.handlers;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.capabilities.ICapabilitySerializable;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.EnergyStorage;
@@ -24,7 +22,7 @@ import thut.tech.common.entity.EntityLift;
 public class EnergyHandler
 {
     /** Pretty standard storable EnergyStorage. */
-    public static class ProviderLift extends EnergyStorage implements ICapabilitySerializable<CompoundNBT>
+    public static class ProviderLift extends EnergyStorage implements ICapabilityProvider
     {
         private final LazyOptional<IEnergyStorage> holder = LazyOptional.of(() -> this);
 
@@ -34,23 +32,9 @@ public class EnergyHandler
         }
 
         @Override
-        public void deserializeNBT(CompoundNBT nbt)
-        {
-            this.energy = nbt.getInt("E");
-        }
-
-        @Override
-        public <T> LazyOptional<T> getCapability(Capability<T> capability, Direction facing)
+        public <T> LazyOptional<T> getCapability(final Capability<T> capability, final Direction facing)
         {
             return CapabilityEnergy.ENERGY.orEmpty(capability, this.holder);
-        }
-
-        @Override
-        public CompoundNBT serializeNBT()
-        {
-            final CompoundNBT tag = new CompoundNBT();
-            tag.putInt("E", this.getEnergyStored());
-            return tag;
         }
     }
 
@@ -65,7 +49,7 @@ public class EnergyHandler
         final ControllerTile                 tile;
         IEnergyStorage                             lift   = null;
 
-        public ProviderLiftController(ControllerTile tile)
+        public ProviderLiftController(final ControllerTile tile)
         {
             this.tile = tile;
         }
@@ -87,7 +71,7 @@ public class EnergyHandler
         }
 
         @Override
-        public int extractEnergy(int maxExtract, boolean simulate)
+        public int extractEnergy(final int maxExtract, final boolean simulate)
         {
             this.updateLift();
             if (this.lift != null) return this.lift.extractEnergy(maxExtract, simulate);
@@ -95,7 +79,7 @@ public class EnergyHandler
         }
 
         @Override
-        public <T> LazyOptional<T> getCapability(Capability<T> capability, Direction facing)
+        public <T> LazyOptional<T> getCapability(final Capability<T> capability, final Direction facing)
         {
             return CapabilityEnergy.ENERGY.orEmpty(capability, this.holder);
         }
@@ -117,7 +101,7 @@ public class EnergyHandler
         }
 
         @Override
-        public int receiveEnergy(int maxReceive, boolean simulate)
+        public int receiveEnergy(final int maxReceive, final boolean simulate)
         {
             this.updateLift();
             if (this.lift != null) return this.lift.receiveEnergy(maxReceive, simulate);
@@ -135,14 +119,14 @@ public class EnergyHandler
 
     @SubscribeEvent
     /** Adds the energy capability to the lift mobs. */
-    public static void onEntityCapabilityAttach(AttachCapabilitiesEvent<Entity> event)
+    public static void onEntityCapabilityAttach(final AttachCapabilitiesEvent<Entity> event)
     {
         if (event.getObject() instanceof EntityLift) event.addCapability(EnergyHandler.ENERGY, new ProviderLift());
     }
 
     @SubscribeEvent
     /** Adds the energy capability to the lift controllers. */
-    public static void onTileCapabilityAttach(AttachCapabilitiesEvent<TileEntity> event)
+    public static void onTileCapabilityAttach(final AttachCapabilitiesEvent<BlockEntity> event)
     {
         if (event.getObject() instanceof ControllerTile) event.addCapability(EnergyHandler.ENERGY,
                 new ProviderLiftController((ControllerTile) event.getObject()));
