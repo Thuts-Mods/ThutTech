@@ -6,9 +6,11 @@ buildscript {
         flatDir {
           dirs 'libs'
         }
+        maven {url='https://repo.spongepowered.org/repository/maven-public/'}
     }
     dependencies {
         classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.+', changing: true
+        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
     }
 }
 
@@ -19,6 +21,10 @@ plugins {
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
+apply plugin: 'org.spongepowered.mixin'
+
+eclipseJdtApt.enabled = false
+eclipseFactoryPath.enabled = false
 
 ext {
     VERSION_COMPILE = gitVersion("${version_major}.${version_minor}")
@@ -30,12 +36,12 @@ version = "${version_minecraft}-${VERSION_COMPILE}"
 group = 'thut'
 archivesBaseName = "${compile_name}"
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(16)
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 minecraft {
     mappings channel: "${channel_mappings}", version: "${version_mappings}"
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-
+    
     runs {
         client = {
             // recommended logging level for the console
@@ -43,6 +49,8 @@ minecraft {
             properties '-XX': '+UnlockCommercialFeatures'
             properties '-XX': '+FlightRecorder'
             properties 'forge.logging.console.level': 'debug'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
             workingDirectory project.file('run').canonicalPath
             source sourceSets.main
         }
@@ -51,6 +59,8 @@ minecraft {
             properties 'forge.logging.console.level': 'debug'
             properties '-XX': '+UnlockCommercialFeatures'
             properties '-XX': '+FlightRecorder'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
             workingDirectory project.file('run').canonicalPath
             source sourceSets.main
         }
@@ -58,7 +68,7 @@ minecraft {
             workingDirectory project.file('run').canonicalPath
             property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
             property 'forge.logging.console.level', 'debug'
-            args '--mod', 'restrictions', '--all', '--output', file('src/generated/resources/'), '--existing', sourceSets.main.resources.srcDirs[0]
+            args '--mod', '${mod_id}', '--all', '--output', file('src/generated/resources/'), '--existing', sourceSets.main.resources.srcDirs[0]
             source sourceSets.main
         }
     }
@@ -78,11 +88,10 @@ repositories {
 }
 
 dependencies {
-
     minecraft "net.minecraftforge:forge:${version_minecraft}-${version_forge}"
     
-    // Thutcore is where most of the code is
-    implementation "${depstr_thutcore}"
+    // Here we import the version of pokecube to use. Note that the curseforge page is 'aoi' rather than 'aio'
+    implementation fg.deobf("curse.maven:pokecube-aoi-${version_pokecube}")
     
     // Computercraft support for controllers
     implementation fg.deobf("org.squiddev:cc-tweaked-${version_cct_mc}:${version_cct}")
@@ -131,19 +140,20 @@ def cleanTOML()
 }
 
 def gitVersion(value) {
-    def raw = grgit.describe(longDescr: true)
-    def desc = (raw == null ? 'unknown-offset-hash' : grgit.describe(longDescr: true)).split('-') as List
-    def vers = desc.get(1)
-    def splis = vers.split(/[.]/)
-    def majver = splis[0].toInteger()
-    def subver = splis[1].toInteger()
-    def offset = splis[2].toInteger()
-    def ver = offset + 1
-    if (subver < version_minor.toInteger()){
-        ver = 0
-    }
-    if (majver < version_major.toInteger()){
-        ver = 0
-    }
-    return "${value}.${ver}"
+    //def raw = grgit.describe(longDescr: true)
+    //def desc = (raw == null ? 'unknown-offset-hash' : grgit.describe(longDescr: true)).split('-') as List
+    //def vers = desc.get(1)
+    //def splis = vers.split(/[.]/)
+    //def majver = splis[0].toInteger()
+    //def subver = splis[1].toInteger()
+    //def offset = splis[2].toInteger()
+    //def ver = offset + 1
+    //if (subver < version_minor.toInteger()){
+    //    ver = 0
+    //}
+    //if (majver < version_major.toInteger()){
+    //    ver = 0
+    //}
+    //return "${value}.${ver}"
+    return "${value}.4"
 }

@@ -46,8 +46,8 @@ public class EnergyHandler
     public static class ProviderLiftController implements ICapabilityProvider, IEnergyStorage
     {
         private final LazyOptional<IEnergyStorage> holder = LazyOptional.of(() -> this);
-        final ControllerTile                 tile;
-        IEnergyStorage                             lift   = null;
+        final ControllerTile tile;
+        IEnergyStorage lift = null;
 
         public ProviderLiftController(final ControllerTile tile)
         {
@@ -121,14 +121,15 @@ public class EnergyHandler
     /** Adds the energy capability to the lift mobs. */
     public static void onEntityCapabilityAttach(final AttachCapabilitiesEvent<Entity> event)
     {
-        if (event.getObject() instanceof EntityLift) event.addCapability(EnergyHandler.ENERGY, new ProviderLift());
+        if (event.getObject() instanceof EntityLift && !event.getCapabilities().containsKey(EnergyHandler.ENERGY))
+            event.addCapability(EnergyHandler.ENERGY, new ProviderLift());
     }
 
     @SubscribeEvent
     /** Adds the energy capability to the lift controllers. */
     public static void onTileCapabilityAttach(final AttachCapabilitiesEvent<BlockEntity> event)
     {
-        if (event.getObject() instanceof ControllerTile) event.addCapability(EnergyHandler.ENERGY,
-                new ProviderLiftController((ControllerTile) event.getObject()));
+        if (event.getObject() instanceof ControllerTile && !event.getCapabilities().containsKey(EnergyHandler.ENERGY))
+            event.addCapability(EnergyHandler.ENERGY, new ProviderLiftController((ControllerTile) event.getObject()));
     }
 }

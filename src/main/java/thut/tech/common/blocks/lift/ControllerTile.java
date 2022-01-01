@@ -34,31 +34,31 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
 // SimpleComponent
 {
 
-    public int                    power        = 0;
-    public int                    prevPower    = 1;
-    private EntityLift            lift;
-    public BlockState             copiedState  = null;
-    boolean                       listNull     = false;
-    List<Entity>                  list         = new ArrayList<>();
-    Vector3                       here;
-    public ControllerTile         rootNode;
-    public Vector<ControllerTile> connected    = new Vector<>();
-    Direction                     sourceSide;
-    boolean                       loaded       = false;
-    public int                    floor        = 0;
-    public UUID                   liftID       = null;
-    UUID                          empty        = new UUID(0, 0);
-    private byte[]                sides        = new byte[6];
-    private byte[]                sidePages    = new byte[6];
-    int                           tries        = 0;
-    public boolean                toClear      = false;
-    public boolean                first        = true;
-    public boolean                read         = false;
-    public boolean                redstone     = true;
-    public boolean                powered      = false;
-    public boolean[]              callFaces    = new boolean[6];
-    public boolean[]              editFace     = new boolean[6];
-    public boolean[]              floorDisplay = new boolean[6];
+    public int power = 0;
+    public int prevPower = 1;
+    private EntityLift lift;
+    public BlockState copiedState = null;
+    boolean listNull = false;
+    List<Entity> list = new ArrayList<>();
+    Vector3 here;
+    public ControllerTile rootNode;
+    public Vector<ControllerTile> connected = new Vector<>();
+    Direction sourceSide;
+    boolean loaded = false;
+    public int floor = 0;
+    public UUID liftID = null;
+    UUID empty = new UUID(0, 0);
+    private byte[] sides = new byte[6];
+    private byte[] sidePages = new byte[6];
+    int tries = 0;
+    public boolean toClear = false;
+    public boolean first = true;
+    public boolean read = false;
+    public boolean redstone = true;
+    public boolean powered = false;
+    public boolean[] callFaces = new boolean[6];
+    public boolean[] editFace = new boolean[6];
+    public boolean[] floorDisplay = new boolean[6];
 
     // Used for limiting how often checks for connected controllers are done.
     private int tick = 0;
@@ -76,12 +76,11 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
     public void buttonPress(final int button, final boolean callPanel)
     {
         if (callPanel && this.getLift() != null) this.getLift().call(this.floor);
-        else if (button != 0 && button <= this.getLift().maxFloors() && this.getLift() != null && this.getLift()
-                .hasFloor(button))
+        else if (button != 0 && button <= this.getLift().maxFloors() && this.getLift() != null
+                && this.getLift().hasFloor(button))
         {
             if (button == this.floor)
-            {
-            }
+            {}
             else if (this.getLift().getCurrentFloor() == this.floor) this.getLift().setCurrentFloor(-1);
             this.getLift().call(button);
         }
@@ -89,9 +88,10 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
 
     public boolean checkSides()
     {
-        final List<EntityLift> check = this.level.getEntitiesOfClass(EntityLift.class, new AABB(this.getBlockPos()
-                .getX() + 0.5 - 1, this.getBlockPos().getY(), this.getBlockPos().getZ() + 0.5 - 1, this.getBlockPos()
-                        .getX() + 0.5 + 1, this.getBlockPos().getY() + 1, this.getBlockPos().getZ() + 0.5 + 1));
+        final List<EntityLift> check = this.level.getEntitiesOfClass(EntityLift.class,
+                new AABB(this.getBlockPos().getX() + 0.5 - 1, this.getBlockPos().getY(),
+                        this.getBlockPos().getZ() + 0.5 - 1, this.getBlockPos().getX() + 0.5 + 1,
+                        this.getBlockPos().getY() + 1, this.getBlockPos().getZ() + 0.5 + 1));
         if (check != null && check.size() > 0)
         {
             this.setLift(check.get(0));
@@ -224,8 +224,7 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
     @Override
     public CompoundTag getUpdateTag()
     {
-        final CompoundTag tag = new CompoundTag();
-        return this.save(tag);
+        return this.saveWithoutMetadata();
     }
 
     @Override
@@ -263,7 +262,11 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
         this.floor = par1.getInt("floor");
         // Reset this so that it will re-find after loading.
         this.lift = null;
-        this.liftID = new UUID(par1.getLong("idMost"), par1.getLong("idLess"));
+        if (par1.hasUUID("lift"))
+        {
+            this.liftID = par1.getUUID("lift");
+            System.out.println(liftID);
+        }
         this.sides = par1.getByteArray("sides");
         for (final Direction face : Direction.Plane.HORIZONTAL)
             this.callFaces[face.ordinal()] = par1.getBoolean(face + "Call");
@@ -279,6 +282,7 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
             final CompoundTag state = par1.getCompound("state");
             this.copiedState = NbtUtils.readBlockState(state);
         }
+        System.out.println(this.level + " " + par1);
     }
 
     public void sendUpdate(final ServerPlayer player)
@@ -393,15 +397,15 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
             final boolean shouldBeCurrent = lift.blockPosition().getY() == yWhenLiftHere;
             final boolean shouldBeCalled = lift.getCalled() && lift.getDestY() == yWhenLiftHere;
 
-            if (current && !shouldBeCurrent) this.level.setBlockAndUpdate(this.getBlockPos(), state.setValue(
-                    ControllerBlock.CURRENT, false));
-            else if (!current && shouldBeCurrent) this.level.setBlockAndUpdate(this.getBlockPos(), state.setValue(
-                    ControllerBlock.CURRENT, true));
+            if (current && !shouldBeCurrent)
+                this.level.setBlockAndUpdate(this.getBlockPos(), state.setValue(ControllerBlock.CURRENT, false));
+            else if (!current && shouldBeCurrent)
+                this.level.setBlockAndUpdate(this.getBlockPos(), state.setValue(ControllerBlock.CURRENT, true));
 
-            if (called && !shouldBeCalled) this.level.setBlockAndUpdate(this.getBlockPos(), state.setValue(
-                    ControllerBlock.CALLED, false));
-            else if (!called && shouldBeCalled) this.level.setBlockAndUpdate(this.getBlockPos(), state.setValue(
-                    ControllerBlock.CALLED, true));
+            if (called && !shouldBeCalled)
+                this.level.setBlockAndUpdate(this.getBlockPos(), state.setValue(ControllerBlock.CALLED, false));
+            else if (!called && shouldBeCalled)
+                this.level.setBlockAndUpdate(this.getBlockPos(), state.setValue(ControllerBlock.CALLED, true));
 
             current = state.getValue(ControllerBlock.CURRENT);
             called = state.getValue(ControllerBlock.CALLED);
@@ -420,9 +424,9 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
     }
 
     @Override
-    public CompoundTag save(final CompoundTag par1)
+    public void saveAdditional(final CompoundTag par1)
     {
-        super.save(par1);
+        super.saveAdditional(par1);
         par1.putInt("floor", this.floor);
         par1.putByteArray("sides", this.sides);
         par1.putByteArray("sidePages", this.sidePages);
@@ -433,17 +437,12 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
         for (final Direction face : Direction.Plane.HORIZONTAL)
             par1.putBoolean(face + "Display", this.floorDisplay[face.ordinal()]);
         if (this.lift != null) this.liftID = this.lift.getUUID();
-        if (this.liftID != null)
-        {
-            par1.putLong("idLess", this.liftID.getLeastSignificantBits());
-            par1.putLong("idMost", this.liftID.getMostSignificantBits());
-        }
+        if (this.liftID != null) par1.putUUID("lift", liftID);
         if (this.copiedState != null)
         {
             final CompoundTag state = NbtUtils.writeBlockState(this.copiedState);
             par1.put("state", state);
         }
-        return par1;
     }
 
     /**

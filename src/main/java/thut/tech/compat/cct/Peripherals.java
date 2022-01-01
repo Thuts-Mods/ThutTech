@@ -1,5 +1,7 @@
 package thut.tech.compat.cct;
 
+import java.util.Arrays;
+
 import dan200.computercraft.api.ComputerCraftAPI;
 import dan200.computercraft.api.lua.IArguments;
 import dan200.computercraft.api.lua.ILuaContext;
@@ -9,15 +11,13 @@ import dan200.computercraft.api.peripheral.IComputerAccess;
 import dan200.computercraft.api.peripheral.IDynamicPeripheral;
 import dan200.computercraft.api.peripheral.IPeripheral;
 import dan200.computercraft.api.peripheral.IPeripheralProvider;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.core.Direction;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.util.LazyOptional;
 import thut.core.common.ThutCore;
 import thut.tech.common.blocks.lift.ControllerTile;
-
-import java.util.Arrays;
 
 public class Peripherals
 {

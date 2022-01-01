@@ -5,20 +5,20 @@ import java.util.UUID;
 
 import com.google.common.collect.Maps;
 
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityDimensions;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.Pose;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.level.Level;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
@@ -39,9 +39,9 @@ public class EntityLift extends BlockEntityBase
     }
 
     static final EntityDataAccessor<Integer> DESTINATIONFLOORDW;
-    static final EntityDataAccessor<Float>   DESTINATIONYDW;
-    static final EntityDataAccessor<Float>   DESTINATIONXDW;
-    static final EntityDataAccessor<Float>   DESTINATIONZDW;
+    static final EntityDataAccessor<Float> DESTINATIONYDW;
+    static final EntityDataAccessor<Float> DESTINATIONXDW;
+    static final EntityDataAccessor<Float> DESTINATIONZDW;
     static final EntityDataAccessor<Integer> CURRENTFLOORDW;
     static final EntityDataAccessor<Boolean> CALLEDDW;
 
@@ -52,17 +52,17 @@ public class EntityLift extends BlockEntityBase
 
     static
     {
-        DESTINATIONFLOORDW = SynchedEntityData.<Integer> defineId(EntityLift.class, EntityDataSerializers.INT);
-        DESTINATIONYDW = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
-        DESTINATIONXDW = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
-        DESTINATIONZDW = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
-        CURRENTFLOORDW = SynchedEntityData.<Integer> defineId(EntityLift.class, EntityDataSerializers.INT);
-        CALLEDDW = SynchedEntityData.<Boolean> defineId(EntityLift.class, EntityDataSerializers.BOOLEAN);
+        DESTINATIONFLOORDW = SynchedEntityData.<Integer>defineId(EntityLift.class, EntityDataSerializers.INT);
+        DESTINATIONYDW = SynchedEntityData.<Float>defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        DESTINATIONXDW = SynchedEntityData.<Float>defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        DESTINATIONZDW = SynchedEntityData.<Float>defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        CURRENTFLOORDW = SynchedEntityData.<Integer>defineId(EntityLift.class, EntityDataSerializers.INT);
+        CALLEDDW = SynchedEntityData.<Boolean>defineId(EntityLift.class, EntityDataSerializers.BOOLEAN);
 
-        SPEEDUP = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
-        SPEEDDOWN = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
-        SPEEDSIDE = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
-        ACCEL = SynchedEntityData.<Float> defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        SPEEDUP = SynchedEntityData.<Float>defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        SPEEDDOWN = SynchedEntityData.<Float>defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        SPEEDSIDE = SynchedEntityData.<Float>defineId(EntityLift.class, EntityDataSerializers.FLOAT);
+        ACCEL = SynchedEntityData.<Float>defineId(EntityLift.class, EntityDataSerializers.FLOAT);
     }
 
     public static boolean ENERGYUSE = false;
@@ -79,11 +79,11 @@ public class EntityLift extends BlockEntityBase
         return LiftTracker.liftMap.get(liftID);
     }
 
-    public IEnergyStorage energy     = null;
-    public UUID           owner;
-    public double         prevFloorY = 0;
-    public double         prevFloor  = 0;
-    private final int[]   floors     = new int[128];
+    public IEnergyStorage energy = null;
+    public UUID owner;
+    public double prevFloorY = 0;
+    public double prevFloor = 0;
+    private final int[] floors = new int[128];
 
     private final int[] hasFloors = new int[128];
 
@@ -328,8 +328,8 @@ public class EntityLift extends BlockEntityBase
     @Override
     public EntityDimensions getDimensions(final Pose pose)
     {
-        if (this.size == null) this.size = EntityDimensions.fixed(1 + this.getMax().getX() - this.getMin().getX(), this
-                .getMax().getY());
+        if (this.size == null)
+            this.size = EntityDimensions.fixed(1 + this.getMax().getX() - this.getMin().getX(), this.getMax().getY());
         return this.size;
     }
 
@@ -355,22 +355,20 @@ public class EntityLift extends BlockEntityBase
 
     @Override
     protected void preColliderTick()
-    {
-    }
+    {}
 
     @Override
     public void readAdditionalSaveData(final CompoundTag arg0)
     {
         super.readAdditionalSaveData(arg0);
         final CompoundTag tag = arg0.getCompound("floors");
-        for (int i = 0; i < this.hasFloors.length; i++)
-            if (tag.contains("" + i))
-            {
-                final int floor = tag.getInt("" + i);
-                final int num = tag.getInt("_" + i);
-                this.hasFloors[i] = num;
-                this.floors[i] = floor;
-            }
+        for (int i = 0; i < this.hasFloors.length; i++) if (tag.contains("" + i))
+        {
+            final int floor = tag.getInt("" + i);
+            final int num = tag.getInt("_" + i);
+            this.hasFloors[i] = num;
+            this.floors[i] = floor;
+        }
         if (arg0.hasUUID("owner")) this.owner = arg0.getUUID("owner");
     }
 
@@ -397,8 +395,7 @@ public class EntityLift extends BlockEntityBase
     }
 
     /**
-     * @param currentFloor
-     *            the destinationFloor to set
+     * @param currentFloor the destinationFloor to set
      */
     public void setCurrentFloor(final int currentFloor)
     {
@@ -406,8 +403,7 @@ public class EntityLift extends BlockEntityBase
     }
 
     /**
-     * @param destinationFloor
-     *            the destinationFloor to set
+     * @param destinationFloor the destinationFloor to set
      */
     public void setDestinationFloor(final int destinationFloor)
     {
@@ -415,8 +411,7 @@ public class EntityLift extends BlockEntityBase
     }
 
     /**
-     * @param dest
-     *            the destinationFloor to set
+     * @param dest the destinationFloor to set
      */
     public void setDestX(final float dest)
     {
@@ -427,8 +422,7 @@ public class EntityLift extends BlockEntityBase
     }
 
     /**
-     * @param dest
-     *            the destinationFloor to set
+     * @param dest the destinationFloor to set
      */
     public void setDestY(final float dest)
     {
@@ -439,8 +433,7 @@ public class EntityLift extends BlockEntityBase
     }
 
     /**
-     * @param dest
-     *            the destinationFloor to set
+     * @param dest the destinationFloor to set
      */
     public void setDestZ(final float dest)
     {
@@ -511,8 +504,7 @@ public class EntityLift extends BlockEntityBase
 
     @Override
     public void setItemSlot(final EquipmentSlot slotIn, final ItemStack stack)
-    {
-    }
+    {}
 
     @Override
     public void setSize(final EntityDimensions size)
@@ -524,14 +516,12 @@ public class EntityLift extends BlockEntityBase
     public void setTiles(final BlockEntity[][][] tiles)
     {
         super.setTiles(tiles);
-        for (final BlockEntity[][] tileArrArr : tiles)
-            for (final BlockEntity[] tileArr : tileArrArr)
-                for (final BlockEntity tile : tileArr)
-                    if (tile instanceof ControllerTile)
-                    {
-                        ((ControllerTile) tile).setLift(this);
-                        ((ControllerTile) tile).setWorldObj((Level) this.getFakeWorld());
-                    }
+        for (final BlockEntity[][] tileArrArr : tiles) for (final BlockEntity[] tileArr : tileArrArr)
+            for (final BlockEntity tile : tileArr) if (tile instanceof ControllerTile)
+        {
+            ((ControllerTile) tile).setLift(this);
+            ((ControllerTile) tile).setWorldObj((Level) this.getFakeWorld());
+        }
     }
 
     @Override
@@ -539,12 +529,11 @@ public class EntityLift extends BlockEntityBase
     {
         super.addAdditionalSaveData(arg0);
         final CompoundTag tag = new CompoundTag();
-        for (int i = 0; i < this.hasFloors.length; i++)
-            if (this.hasFloors[i] > 0)
-            {
-                tag.putInt("" + i, this.floors[i]);
-                tag.putInt("_" + i, this.hasFloors[i]);
-            }
+        for (int i = 0; i < this.hasFloors.length; i++) if (this.hasFloors[i] > 0)
+        {
+            tag.putInt("" + i, this.floors[i]);
+            tag.putInt("_" + i, this.hasFloors[i]);
+        }
         arg0.put("floors", tag);
         if (this.owner != null) arg0.putUUID("owner", this.owner);
     }

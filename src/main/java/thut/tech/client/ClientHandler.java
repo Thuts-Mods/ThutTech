@@ -24,7 +24,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;
-import net.minecraftforge.client.event.RenderWorldLastEvent;
+import net.minecraftforge.client.event.RenderLevelLastEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -42,7 +42,7 @@ public class ClientHandler
     {
         @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
-        public static void RenderBounds(final RenderWorldLastEvent event)
+        public static void RenderBounds(final RenderLevelLastEvent event)
         {
             ItemStack held;
             final Player player = Minecraft.getInstance().player;
@@ -54,7 +54,7 @@ public class ClientHandler
                     final Minecraft mc = Minecraft.getInstance();
                     final Vec3 projectedView = mc.gameRenderer.getMainCamera().getPosition();
                     Vec3 pointed = new Vec3(projectedView.x, projectedView.y, projectedView.z).add(mc.player
-                            .getViewVector(event.getPartialTicks()));
+                            .getViewVector(event.getPartialTick()));
                     if (mc.hitResult != null && mc.hitResult.getType() == Type.BLOCK)
                     {
                         final BlockHitResult result = (BlockHitResult) mc.hitResult;
@@ -74,7 +74,7 @@ public class ClientHandler
                     final double maxY = Math.max(one.maxY, two.maxY);
                     final double maxZ = Math.max(one.maxZ, two.maxZ);
 
-                    final PoseStack mat = event.getMatrixStack();
+                    final PoseStack mat = event.getPoseStack();
                     mat.translate(-projectedView.x, -projectedView.y, -projectedView.z);
 
                     final List<Pair<Vector3f, Vector3f>> lines = Lists.newArrayList();
