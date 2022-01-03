@@ -2,7 +2,7 @@ modLoader="javafml"
 loaderVersion="[31,)"
 license="All rights reserved"
 
-issueTrackerURL="https://github.com/Thutmose/Thut/issues"
+issueTrackerURL="https://github.com/Thuts-Mods/ThutTech/issues"
 
 [[mods]]
     modId="thuttech"
