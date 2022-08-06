@@ -91,8 +91,7 @@ dependencies {
     minecraft "net.minecraftforge:forge:${version_minecraft}-${version_forge}"
     
     // Here we import the version of pokecube to use. Note that the curseforge page is 'aoi' rather than 'aio'
-    //implementation fg.deobf("curse.maven:pokecube-aoi-${version_pokecube}")
-    implementation "blank:thutcore-1.18.2-8.8.0-deobf"
+    implementation fg.deobf("curse.maven:thutcore-${version_thutcore_sup}")
     
     // Computercraft support for controllers
     implementation fg.deobf("org.squiddev:cc-tweaked-${version_cct_mc}:${version_cct}")
