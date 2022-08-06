@@ -24,7 +24,8 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;
-import net.minecraftforge.client.event.RenderLevelLastEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent.Stage;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -42,8 +43,9 @@ public class ClientHandler
     {
         @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
-        public static void RenderBounds(final RenderLevelLastEvent event)
+        public static void RenderBounds(final RenderLevelStageEvent event)
         {
+        	if (event.getStage() != Stage.AFTER_SOLID_BLOCKS) return;
             ItemStack held;
             final Player player = Minecraft.getInstance().player;
             if (!(held = player.getMainHandItem()).isEmpty() || !(held = player.getOffhandItem()).isEmpty())

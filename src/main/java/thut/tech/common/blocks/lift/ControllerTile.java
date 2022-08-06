@@ -342,7 +342,7 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
     @Override
     public void tick()
     {
-        if (this.here == null) this.here = Vector3.getNewVector();
+        if (this.here == null) this.here = new Vector3();
         this.here.set(this);
         EntityLift lift = this.getLift();
 

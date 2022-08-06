@@ -25,7 +25,6 @@ import net.minecraftforge.energy.IEnergyStorage;
 import thut.api.entity.blockentity.BlockEntityBase;
 import thut.api.entity.blockentity.BlockEntityInteractHandler;
 import thut.api.maths.Vector3;
-import thut.api.maths.vecmath.Vector3f;
 import thut.core.common.ThutCore;
 import thut.core.common.network.EntityUpdate;
 import thut.tech.common.TechCore;
@@ -87,7 +86,7 @@ public class EntityLift extends BlockEntityBase
 
     private final int[] hasFloors = new int[128];
 
-    private final Vector3f velocity = new Vector3f();
+    private final Vector3 velocity = new Vector3();
 
     private Vec3 motion = new Vec3(0, 0, 0);
 
@@ -229,7 +228,7 @@ public class EntityLift extends BlockEntityBase
         if (this.energy == null) return true;
 
         boolean power = false;
-        final Vector3 bounds = Vector3.getNewVector().set(this.boundMax.subtract(this.boundMin));
+        final Vector3 bounds = new Vector3().set(this.boundMax.subtract(this.boundMin));
         final double volume = bounds.x * bounds.y * bounds.z;
         int energyCost = (int) (Math.abs(this.getDestY() - this.getY()) * EntityLift.ENERGYCOST * volume * 0.01);
         energyCost = Math.max(energyCost, 1);
