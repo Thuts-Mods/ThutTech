@@ -90,7 +90,7 @@ repositories {
 dependencies {
     minecraft "net.minecraftforge:forge:${version_minecraft}-${version_forge}"
     
-    // Here we import the version of pokecube to use. Note that the curseforge page is 'aoi' rather than 'aio'
+    // Here we import the version of thutcore to use
     implementation fg.deobf("curse.maven:thutcore-${version_thutcore_sup}")
     
     // Computercraft support for controllers
@@ -155,5 +155,5 @@ def gitVersion(value) {
     //    ver = 0
     //}
     //return "${value}.${ver}"
-    return "${value}.5"
+    return "${value}.6"
 }
