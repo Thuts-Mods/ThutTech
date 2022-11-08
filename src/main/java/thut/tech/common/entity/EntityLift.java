@@ -18,7 +18,6 @@ import net.minecraft.world.entity.Pose;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.energy.IEnergyStorage;
 import thut.api.ThutCaps;
@@ -70,10 +69,10 @@ public class EntityLift extends BlockEntityBase
 
     public static EntityLift getLiftFromUUID(final UUID liftID, final Level world)
     {
-        if (world instanceof ServerLevel)
+        if (world instanceof ServerLevel level)
         {
-            final Entity e = ((ServerLevel) world).getEntity(liftID);
-            if (e instanceof EntityLift) return (EntityLift) e;
+            final Entity e = level.getEntity(liftID);
+            if (e instanceof EntityLift lift) return lift;
         }
         return LiftTracker.liftMap.get(liftID);
     }
@@ -86,10 +85,6 @@ public class EntityLift extends BlockEntityBase
 
     private final int[] hasFloors = new int[128];
 
-    private final Vector3 velocity = new Vector3();
-
-    private Vec3 motion = new Vec3(0, 0, 0);
-
     EntityDimensions size;
 
     public EntityLift(final EntityType<EntityLift> type, final Level par1World)
@@ -98,8 +93,24 @@ public class EntityLift extends BlockEntityBase
     }
 
     @Override
-    public void accelerate()
+    protected Vector3 getForceDirection()
     {
+        updateForce();
+        return F;
+    }
+
+    public void updateForce()
+    {
+        TechCore.config.LiftSpeedUp = 2.0;
+        TechCore.config.LiftAcceleration = 0.1;
+        // Refresh these incase config changed.
+        this.entityData.set(EntityLift.SPEEDUP, Float.valueOf((float) TechCore.config.LiftSpeedUp));
+        this.entityData.set(EntityLift.SPEEDDOWN, Float.valueOf((float) TechCore.config.LiftSpeedDown));
+        this.entityData.set(EntityLift.SPEEDSIDE, Float.valueOf((float) TechCore.config.LiftSpeedSideways));
+        this.entityData.set(EntityLift.ACCEL, Float.valueOf((float) TechCore.config.LiftAcceleration));
+
+        // Clear force vector
+        F.clear();
         // These elevators shouldn't be able to rotate, set this here incase
         // someone else has tried to rotate it.
         this.setYRot(0);
@@ -107,8 +118,15 @@ public class EntityLift extends BlockEntityBase
         if (this.isServerWorld() && !this.consumePower())
         {
             this.toMoveY = this.toMoveX = this.toMoveZ = false;
-            this.setDestX((float) this.getX());
             this.setCalled(false);
+        }
+
+        if (!this.getCalled())
+        {
+            this.setDestX((float) this.getX());
+            this.setDestY((float) this.getY());
+            this.setDestZ((float) this.getZ());
+            this.toMoveY = this.toMoveX = this.toMoveZ = false;
         }
         else
         {
@@ -117,82 +135,19 @@ public class EntityLift extends BlockEntityBase
             this.toMoveY = this.getDestY() != this.getY();
             this.toMoveZ = this.getDestZ() != this.getZ();
         }
+
         if (!(this.toMoveX || this.toMoveY || this.toMoveZ)) this.setCalled(false);
 
+        double F_x = this.getDestX() - this.getX();
+        double F_y = this.getDestY() - this.getY();
+        double F_z = this.getDestZ() - this.getZ();
+
         // Apply damping to velocities if no destination.
-        if (!this.toMoveX) this.velocity.x *= 0.5;
-        if (!this.toMoveZ) this.velocity.z *= 0.5;
-        if (!this.toMoveY) this.velocity.y *= 0.5;
+        if (!this.toMoveX) F_x = 0;
+        if (!this.toMoveY) F_y = 0;
+        if (!this.toMoveZ) F_z = 0;
 
-        if (this.getCalled())
-        {
-            final double speedDown = this.getSpeedDown();
-            final double speedHoriz = this.getSpeedHoriz();
-            final double speedUp = this.getSpeedUp();
-
-            if (this.toMoveY)
-            {
-                final float destY = this.getDestY();
-                // If Sufficiently close (0,01 blocks) just snap the elevator to
-                // the destination.
-                if (Math.abs(destY - this.getY()) < 0.01)
-                {
-                    this.setPos(this.getX(), destY, this.getZ());
-                    this.toMoveY = false;
-                    this.velocity.y = 0;
-                }
-                else
-                {
-                    // Otherwise accelerate accordingly.
-                    final double dy = this.getSpeed(this.getY(), destY, this.velocity.y, speedUp, speedDown);
-                    this.velocity.y = (float) dy;
-                }
-            }
-            if (this.toMoveX)
-            {
-                final float destX = this.getDestX();
-                if (Math.abs(destX - this.getX()) < 0.01)
-                {
-                    this.setPos(destX, this.getY(), this.getZ());
-                    this.toMoveX = false;
-                    this.velocity.x = 0;
-                }
-                else
-                {
-                    final double dx = this.getSpeed(this.getX(), destX, this.velocity.x, speedHoriz, speedHoriz);
-                    this.velocity.x = (float) dx;
-                }
-            }
-            if (this.toMoveZ)
-            {
-                final float destZ = this.getDestZ();
-                if (Math.abs(destZ - this.getZ()) < 0.01)
-                {
-                    this.setPos(this.getX(), this.getY(), destZ);
-                    this.toMoveZ = false;
-                    this.velocity.z = 0;
-                }
-                else
-                {
-                    final double dz = this.getSpeed(this.getZ(), destZ, this.velocity.z, speedHoriz, speedHoriz);
-                    this.velocity.z = (float) dz;
-                }
-            }
-        }
-        this.setDeltaMovement(this.velocity.x, this.velocity.y, this.velocity.z);
-
-    }
-
-    @Override
-    public Vec3 getDeltaMovement()
-    {
-        return this.motion;
-    }
-
-    @Override
-    public void setDeltaMovement(final Vec3 vec)
-    {
-        this.motion = vec;
+        F.set(F_x, F_y, F_z);
     }
 
     public void call(final int floor)
@@ -218,7 +173,8 @@ public class EntityLift extends BlockEntityBase
     @Override
     protected boolean checkAccelerationConditions()
     {
-        return this.consumePower();
+        this.consumePower();
+        return true;
     }
 
     private boolean consumePower()
@@ -254,16 +210,6 @@ public class EntityLift extends BlockEntityBase
     {
         return new LiftInteractHandler(this);
     }
-
-    // @Override
-    // public void doMotion()
-    // {
-    // if (!this.toMoveX) this.velocity.x = 0;
-    // if (!this.toMoveY) this.velocity.y = 0;
-    // if (!this.toMoveZ) this.velocity.z = 0;
-    // this.setMotion(this.velocity.x, this.velocity.y, this.velocity.z);
-    // this.move(MoverType.SELF, this.getMotion());
-    // }
 
     public boolean getCalled()
     {
@@ -516,10 +462,10 @@ public class EntityLift extends BlockEntityBase
     {
         super.setTiles(tiles);
         for (final BlockEntity[][] tileArrArr : tiles) for (final BlockEntity[] tileArr : tileArrArr)
-            for (final BlockEntity tile : tileArr) if (tile instanceof ControllerTile)
+            for (final BlockEntity tile : tileArr) if (tile instanceof ControllerTile controller)
         {
-            ((ControllerTile) tile).setLift(this);
-            ((ControllerTile) tile).setWorldObj((Level) this.getFakeWorld());
+            controller.setLift(this);
+            controller.setWorldObj((Level) this.getFakeWorld());
         }
     }
 

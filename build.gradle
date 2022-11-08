@@ -91,7 +91,8 @@ dependencies {
     minecraft "net.minecraftforge:forge:${version_minecraft}-${version_forge}"
     
     // Here we import the version of thutcore to use
-    implementation fg.deobf("curse.maven:thutcore-${version_thutcore_sup}")
+    // implementation fg.deobf("curse.maven:thutcore-${version_thutcore_sup}")
+    implementation "blank:thutcore-1.19.2-8.9.1-deobf"
     
     // Computercraft support for controllers
     implementation fg.deobf("org.squiddev:cc-tweaked-${version_cct_mc}:${version_cct}")
@@ -155,5 +156,5 @@ def gitVersion(value) {
     //    ver = 0
     //}
     //return "${value}.${ver}"
-    return "${value}.6"
+    return "${value}.1"
 }
