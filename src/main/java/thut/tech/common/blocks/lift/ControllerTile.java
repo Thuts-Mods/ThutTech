@@ -7,12 +7,16 @@ import java.util.Vector;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -61,6 +65,9 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
 
     // Used for limiting how often checks for connected controllers are done.
     private int tick = 0;
+
+    // Used to decide the lift really is gone.
+    private int liftForgetTimer = 0;
 
     public ControllerTile(final BlockPos pos, final BlockState state)
     {
@@ -277,7 +284,11 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
         if (par1.contains("state"))
         {
             final CompoundTag state = par1.getCompound("state");
-            this.copiedState = NbtUtils.readBlockState(state);
+            @SuppressWarnings("deprecation")
+            HolderGetter<Block> holdergetter = (HolderGetter<Block>) (this.level != null
+                    ? this.level.holderLookup(Registries.BLOCK)
+                    : BuiltInRegistries.BLOCK.asLookup());
+            this.copiedState = NbtUtils.readBlockState(holdergetter, state);
         }
     }
 
@@ -323,8 +334,8 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
         this.sidePages[side.get3DDataValue()] = (byte) page;
     }
 
-    /** Sets the worldObj for this tileEntity. */
-    public void setWorldObj(final Level worldIn)
+    @Override
+    public void setLevel(final Level worldIn)
     {
         this.level = worldIn;
         if (worldIn instanceof IBlockEntityWorld beworld)
@@ -347,7 +358,7 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
         if (this.level instanceof IBlockEntityWorld) return;
 
         // Cleanup floor if the lift is gone.
-        if (this.floor > 0 && (lift == null || !lift.isAlive()))
+        if (this.floor > 0 && (lift == null || !lift.isAlive()) && liftForgetTimer > 20)
         {
             this.setLift(null);
             lift = null;
@@ -455,9 +466,15 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
                 return this.lift;
             }
 
-            if (this.lift == null) this.setLift(null);
+            if (this.lift == null)
+            {
+                // Give some time to decide if we want to clear the lift, for
+                // cases where things may load in in funny orders.
+                if (liftForgetTimer++ > 20) this.setLift(null);
+            }
             else
             {
+                liftForgetTimer = 0;
                 this.setLift(this.lift);
                 // Make sure that lift's floor is this one if it doesn't have
                 // one defined.

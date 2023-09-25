@@ -2,7 +2,7 @@ package thut.tech.compat.cct;
 
 import java.util.Arrays;
 
-import dan200.computercraft.api.ComputerCraftAPI;
+import dan200.computercraft.api.ForgeComputerCraftAPI;
 import dan200.computercraft.api.lua.IArguments;
 import dan200.computercraft.api.lua.ILuaContext;
 import dan200.computercraft.api.lua.LuaException;
@@ -29,7 +29,7 @@ public class Peripherals
         {
             Peripherals.reged = true;
             ThutCore.LOGGER.info("Registering CC Peripheral!");
-            ComputerCraftAPI.registerPeripheralProvider(new ElevatorPeripheralProvider());
+            ForgeComputerCraftAPI.registerPeripheralProvider(new ElevatorPeripheralProvider());
         }
     }
 

@@ -6,17 +6,17 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.material.Material;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
-import thut.core.common.ThutCore;
 import thut.core.common.config.Config;
 import thut.core.common.network.PacketHandler;
+import thut.core.init.ThutCreativeTabs;
 import thut.tech.Reference;
 import thut.tech.common.blocks.lift.ControllerBlock;
 import thut.tech.common.blocks.lift.ControllerTile;
@@ -31,9 +31,9 @@ public class TechCore
     public final static PacketHandler packets = new PacketHandler(new ResourceLocation(Reference.MOD_ID, "comms"),
             Reference.NETVERSION);
 
-    public static final DeferredRegister<Item>               ITEMS;
-    public static final DeferredRegister<Block>              BLOCKS;
-    public static final DeferredRegister<EntityType<?>>      ENTITY;
+    public static final DeferredRegister<Item> ITEMS;
+    public static final DeferredRegister<Block> BLOCKS;
+    public static final DeferredRegister<EntityType<?>> ENTITY;
     public static final DeferredRegister<BlockEntityType<?>> TILEENTITY;
 
     public static final RegistryObject<Block> LIFTCONTROLLER;
@@ -56,17 +56,16 @@ public class TechCore
 
         LIFTTYPE = TechCore.ENTITY.register("lift", () -> new EntityLift.BlockEntityType<>(EntityLift::new));
 
-        CONTROLTYPE = TechCore.TILEENTITY.register("controller", () -> BlockEntityType.Builder.of(ControllerTile::new,
-                TechCore.LIFTCONTROLLER.get()).build(null));
-        LIFTCONTROLLER = TechCore.BLOCKS.register("controller", () -> new ControllerBlock(Block.Properties.of(
-                Material.METAL).strength(3.5f).dynamicShape().noOcclusion()));
+        CONTROLTYPE = TechCore.TILEENTITY.register("controller",
+                () -> BlockEntityType.Builder.of(ControllerTile::new, TechCore.LIFTCONTROLLER.get()).build(null));
+        LIFTCONTROLLER = TechCore.BLOCKS.register("controller",
+                () -> new ControllerBlock(Block.Properties.of().strength(3.5f).dynamicShape().noOcclusion()));
 
-        LIFT = TechCore.ITEMS.register("lift", () -> new Item(new Item.Properties().tab(ThutCore.THUTITEMS)));
-        LINKER = TechCore.ITEMS.register("linker", () -> new ItemLinker(new Item.Properties().tab(ThutCore.THUTITEMS)));
+        LIFT = TechCore.ITEMS.register("lift", () -> new Item(new Item.Properties()));
+        LINKER = TechCore.ITEMS.register("linker", () -> new ItemLinker(new Item.Properties()));
 
         for (final RegistryObject<Block> reg : TechCore.BLOCKS.getEntries())
-            TechCore.ITEMS.register(reg.getId().getPath(), () -> new BlockItem(reg.get(), new Item.Properties().tab(
-                    ThutCore.THUTITEMS)));
+            TechCore.ITEMS.register(reg.getId().getPath(), () -> new BlockItem(reg.get(), new Item.Properties()));
     }
 
     public TechCore()
@@ -80,8 +79,19 @@ public class TechCore
         TechCore.BLOCKS.register(modEventBus);
         TechCore.TILEENTITY.register(modEventBus);
         TechCore.ENTITY.register(modEventBus);
+        modEventBus.addListener(this::addCreative);
 
         // Register Config stuff
         Config.setupConfigs(TechCore.config, Reference.MOD_ID, Reference.MOD_ID);
+    }
+
+    void addCreative(BuildCreativeModeTabContentsEvent event)
+    {
+        if (event.getTabKey().equals(ThutCreativeTabs.UTILITIES_TAB.getKey()))
+        {
+            event.accept(LIFT);
+            event.accept(LINKER);
+            event.accept(LIFTCONTROLLER);
+        }
     }
 }
