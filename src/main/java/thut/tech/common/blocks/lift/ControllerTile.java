@@ -8,10 +8,14 @@ import java.util.Vector;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderGetter;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -21,12 +25,12 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.extensions.IForgeBlockEntity;
+import org.jetbrains.annotations.Nullable;
 import thut.api.block.ITickTile;
 import thut.api.entity.blockentity.IBlockEntity;
 import thut.api.entity.blockentity.world.IBlockEntityWorld;
 import thut.api.maths.Vector3;
+import thut.core.common.ThutCore;
 import thut.core.common.network.TileUpdate;
 import thut.lib.TComponent;
 import thut.tech.common.TechCore;
@@ -98,9 +102,9 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
                 new AABB(this.getBlockPos().getX() + 0.5 - 1, this.getBlockPos().getY(),
                         this.getBlockPos().getZ() + 0.5 - 1, this.getBlockPos().getX() + 0.5 + 1,
                         this.getBlockPos().getY() + 1, this.getBlockPos().getZ() + 0.5 + 1));
-        if (check != null && check.size() > 0)
+        if (check != null && !check.isEmpty())
         {
-            this.setLift(check.get(0));
+            this.setLift(check.getFirst());
             this.liftID = this.getLift().getUUID();
         }
         return !(check == null || check.isEmpty());
@@ -216,29 +220,18 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
 
     }
 
-    @Override
-    public AABB getRenderBoundingBox()
-    {
-        final AABB bb = IForgeBlockEntity.INFINITE_EXTENT_AABB;
-        return bb;
-    }
+//    TODO check render distance (beacon?)
+//    @Override
+//    public AABB getRenderBoundingBox()
+//    {
+//        final AABB bb = IForgeBlockEntity.INFINITE_EXTENT_AABB;
+//        return bb;
+//    }
 
     public int getSidePage(final Direction side)
     {
         if (this.isEditMode(side)) return 0;
         return this.sidePages[side.get3DDataValue()];
-    }
-
-    @Override
-    public CompoundTag getUpdateTag()
-    {
-        return this.saveWithoutMetadata();
-    }
-
-    @Override
-    public void handleUpdateTag(final CompoundTag tag)
-    {
-        this.load(tag);
     }
 
     public boolean isSideOn(final Direction side)
@@ -264,9 +257,9 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
     }
 
     @Override
-    public void load(final CompoundTag par1)
+    protected void loadAdditional(CompoundTag par1, Provider registries)
     {
-        super.load(par1);
+        super.loadAdditional(par1, registries);
         this.floor = par1.getInt("floor");
         // Reset this so that it will re-find after loading.
         this.lift = null;
@@ -284,7 +277,6 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
         if (par1.contains("state"))
         {
             final CompoundTag state = par1.getCompound("state");
-            @SuppressWarnings("deprecation")
             HolderGetter<Block> holdergetter = (HolderGetter<Block>) (this.level != null
                     ? this.level.holderLookup(Registries.BLOCK)
                     : BuiltInRegistries.BLOCK.asLookup());
@@ -422,14 +414,14 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
                 final int power = this.level.getSignal(this.getBlockPos(), facing.getOpposite());
                 if (power > 0) lift.call(this.floor);
             }
-            MinecraftForge.EVENT_BUS.post(new ControllerUpdate(this));
+            ThutCore.FORGE_BUS.post(new ControllerUpdate(this));
         }
     }
 
     @Override
-    public void saveAdditional(final CompoundTag par1)
+    public void saveAdditional(final CompoundTag par1, Provider registries)
     {
-        super.saveAdditional(par1);
+        super.saveAdditional(par1, registries);
         par1.putInt("floor", this.floor);
         par1.putByteArray("sides", this.sides);
         par1.putByteArray("sidePages", this.sidePages);
@@ -484,4 +476,21 @@ public class ControllerTile extends BlockEntity implements ITickTile// ,
         return this.lift;
     }
 
+    @Override
+    public @Nullable Packet<ClientGamePacketListener> getUpdatePacket()
+    {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(Provider registries)
+    {
+        return this.saveWithFullMetadata(registries);
+    }
+
+    @Override
+    public void handleUpdateTag(CompoundTag tag, Provider lookupProvider)
+    {
+        super.handleUpdateTag(tag, lookupProvider);
+    }
 }

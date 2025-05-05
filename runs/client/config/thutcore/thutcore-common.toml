@@ -1,0 +1,53 @@
+[biomes]
+	# sets customBiomeMappings
+	customBiomeMappings = []
+	# sets resetAllTerrain
+	resetAllTerrain = false
+
+[blockentity]
+	# sets autoBlacklistErroredTEs
+	autoBlacklistErroredTEs = true
+	# sets blockblacklist
+	blockblacklist = ["minecraft:bedrock"]
+	# sets teblacklist
+	teblacklist = []
+
+[client]
+	# sets asyncModelLoads
+	asyncModelLoads = true
+	# Fancy style GUIs. Set to false for vanilla style GUIs. [Default: true]
+	fancyGUI = true
+	# sets modelCullThreshold
+	modelCullThreshold = 0.1
+
+[debug]
+	# sets debug
+	debug = false
+	# sets debug_data
+	debug_data = false
+	# sets debug_models
+	debug_models = false
+
+[explosions]
+	# sets affectAir
+	affectAir = true
+	# sets explosionRadius
+	explosionRadius = 127
+	# sets generateCache
+	generateCache = true
+	# sets maxMsPerTick
+	maxMsPerTick = 25
+	# sets minBlastEffect
+	minBlastEffect = 0.25
+
+[generation]
+	# Does a blanket "plant material" check for cuttable and edible plants, rather than relying entirely on the block tags. [Default: true]
+	autoPopulateLists = true
+	# Structures listed here will have the relevant subbiome applied for if minecraft thinks that the block is inside the structure.
+	structure_subbiomes = ["{\"struct\":\"#minecraft:on_ocean_explorer_maps\",\"subbiome\":\"monument\"}"]
+
+[misc]
+	# Add items to vanilla tabs. [Default: true]
+	itemsInCreativeTabs = true
+	# sets supress_warns
+	supress_warns = false

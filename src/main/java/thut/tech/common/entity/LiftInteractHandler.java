@@ -3,6 +3,7 @@ package thut.tech.common.entity;
 import javax.annotation.Nullable;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -11,6 +12,7 @@ import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
 import thut.api.entity.blockentity.BlockEntityInteractHandler;
 import thut.core.common.ThutCore;
 import thut.lib.TComponent;
@@ -72,8 +74,12 @@ public class LiftInteractHandler extends BlockEntityInteractHandler
         }
         else if (shouldLinkLift)
         {
-            if (stack.getTag() == null) stack.setTag(new CompoundTag());
-            stack.getTag().putString("lift", this.lift.getStringUUID());
+            // TODO use linkable instead
+            CompoundTag data = stack.has(DataComponents.CUSTOM_DATA)?stack.get(DataComponents.CUSTOM_DATA).copyTag():null;
+            if (data == null) data = new CompoundTag();
+            data.putString("lift", this.lift.getStringUUID());
+            stack.set(DataComponents.CUSTOM_DATA, CustomData.of(data));
+            
 
             final String message = "msg.liftSet";
 

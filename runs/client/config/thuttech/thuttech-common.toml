@@ -1,0 +1,23 @@
+[controller]
+	# sets controllerProduction
+	controllerProduction = 16
+	# sets maxLiftEnergy
+	maxLiftEnergy = 5000000
+
+[size]
+	# sets maxHeight
+	maxHeight = 5
+	# sets maxRadius
+	maxRadius = 2
+
+[speed]
+	# sets LiftAcceleration
+	LiftAcceleration = 0.025
+	# sets LiftSpeedDown
+	LiftSpeedDown = 0.35
+	# sets LiftSpeedDownOccupied
+	LiftSpeedDownOccupied = 0.0
+	# sets LiftSpeedSideways
+	LiftSpeedSideways = 0.5
+	# sets LiftSpeedUp
+	LiftSpeedUp = 0.3
