@@ -21,6 +21,7 @@ build/
 # other
 eclipse
 run
+runs
 *.blend1
 logs/*
 /.apt_generated/
