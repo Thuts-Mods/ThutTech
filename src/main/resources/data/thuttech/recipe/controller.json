@@ -15,6 +15,7 @@
     }
   },
   "result": {
-    "item": "thuttech:controller"
+    "id": "thuttech:controller",
+    "count": 1
   }
 }
