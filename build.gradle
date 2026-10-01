@@ -102,6 +102,13 @@ configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
+repositories {
+    // Adds the 'libs' folder in the project directory as a flat directory
+    flatDir {
+        dir 'libs'
+    }
+}
+
 dependencies {
     // Specify the version of Minecraft to use.
     // Depending on the plugin applied there are several options. We will assume you applied the userdev plugin as shown above.
@@ -112,6 +119,9 @@ dependencies {
     implementation "net.neoforged:neoforge:${neo_version}"
 
     implementation "curse.maven:thutcore-${thutcore_compile_str}"
+
+    // For now put this here, later we might upload that jar to curseforge as well?
+    implementation('thut.api:thutapi-1.0.0')
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
